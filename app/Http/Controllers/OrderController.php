@@ -41,7 +41,23 @@ class OrderController extends Controller
                 search: $request->string('search')->toString() ?: null
             );
 
-            return response()->json(['data' => OrderListResource::collection($orders)]);
+            $total = $this->orderRepository->countForIndex(
+                user: $request->user(),
+                status: $request->string('status')->toString() ?: null,
+                search: $request->string('search')->toString() ?: null
+            );
+
+            $stats = $this->orderRepository->statsForUser($request->user());
+
+            return response()->json([
+                'data' => OrderListResource::collection($orders),
+                'meta' => [
+                    'total' => $total,
+                    'skip' => $skip,
+                    'take' => $take,
+                ],
+                'stats' => $stats,
+            ]);
         }
 
         return view('orders.index', [
@@ -118,5 +134,24 @@ class OrderController extends Controller
         );
 
         return back()->with('status', "Order {$order->order_number} status updated.");
+    }
+
+    public function show(Request $request, string $orderId): View
+    {
+        $order = Order::query()
+            ->with([
+                'trip:id,trip_number,status',
+                'customer:id,name,phone,email,address',
+                'creator:id,name',
+                'statusHistory' => fn ($query) => $query->with('changedBy:id,name')->latest(),
+                'legs' => fn ($query) => $query->with(['fleet:id,fleet_code,plate_number', 'driver:id,name'])->orderBy('leg_sequence'),
+            ])
+            ->findOrFail(EncryptedId::decode($orderId));
+
+        $this->authorize('view', $order);
+
+        return view('orders.show', [
+            'order' => $order,
+        ]);
     }
 }

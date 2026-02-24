@@ -21,7 +21,13 @@
     </x-slot>
 
     <div class="space-y-6" 
-         x-data="{ openCustomerModal: false }" 
+         x-data="{ 
+            openCustomerModal: false, 
+            openEditModal: false,
+            openDeleteModal: false,
+            editForm: { id: '', name: '', contact_person: '', phone: '', email: '', address: '' },
+            deleteTarget: { id: '', name: '' }
+         }" 
          @open-customer-modal.window="openCustomerModal = true">
         
         <!-- Customer Registration Modal -->
@@ -145,6 +151,87 @@
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            </div>
+        @endcan
+
+        <!-- Edit Customer Modal -->
+        @can('customers.edit')
+            <div x-show="openEditModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto"
+                 x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                 x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+                <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" @click="openEditModal = false"></div>
+                <div class="flex min-h-full items-center justify-center p-4">
+                    <div x-show="openEditModal"
+                         x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+                         class="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
+                        <div class="flex items-center justify-between border-b border-slate-200/60 px-6 py-4">
+                            <h3 class="text-lg font-semibold text-slate-900">Edit Customer</h3>
+                            <button @click="openEditModal = false" class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-500">
+                                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                        <form :action="`{{ url('/customers') }}/${editForm.id}`" method="POST" class="p-6">
+                            @csrf
+                            @method('PUT')
+                            <div class="grid gap-5 sm:grid-cols-2">
+                                <div class="sm:col-span-2">
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Customer Name <span class="text-rose-500">*</span></label>
+                                    <input type="text" name="name" required x-model="editForm.name" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Contact Person</label>
+                                    <input type="text" name="contact_person" x-model="editForm.contact_person" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
+                                    <input type="tel" name="phone" x-model="editForm.phone" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20">
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+                                    <input type="email" name="email" x-model="editForm.email" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20">
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Address <span class="text-rose-500">*</span></label>
+                                    <textarea name="address" rows="3" required x-model="editForm.address" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 resize-none"></textarea>
+                                </div>
+                            </div>
+                            <div class="mt-6 flex items-center justify-end gap-3 border-t border-slate-200/60 pt-4">
+                                <button type="button" @click="openEditModal = false" class="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
+                                <button type="submit" class="rounded-xl bg-gradient-to-r from-[var(--nmis-primary)] to-[var(--nmis-secondary)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--nmis-primary)]/20">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endcan
+
+        <!-- Delete Customer Confirmation Modal -->
+        @can('customers.delete')
+            <div x-show="openDeleteModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto"
+                 x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                 x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+                <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" @click="openDeleteModal = false"></div>
+                <div class="flex min-h-full items-center justify-center p-4">
+                    <div x-show="openDeleteModal"
+                         x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+                         class="relative w-full max-w-md rounded-2xl bg-white shadow-2xl">
+                        <div class="p-6">
+                            <h3 class="text-lg font-semibold text-slate-900">Delete Customer</h3>
+                            <p class="mt-2 text-sm text-slate-600">
+                                Are you sure you want to delete <span class="font-semibold text-slate-900" x-text="deleteTarget.name"></span>?
+                                This action cannot be undone.
+                            </p>
+                            <form :action="`{{ url('/customers') }}/${deleteTarget.id}`" method="POST" class="mt-6 flex justify-end gap-3">
+                                @csrf
+                                @method('DELETE')
+                                <button type="button" @click="openDeleteModal = false" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
+                                <button type="submit" class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700">Delete</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -304,14 +391,25 @@
                                         <!-- Action buttons with improved visibility -->
                                         <div class="flex items-center justify-end gap-2">
                                             @can('customers.edit')
-                                                <button class="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-[var(--nmis-primary)] hover:text-white transition-all opacity-60 hover:opacity-100" title="Edit">
+                                                <button type="button"
+                                                        @click="editForm = {
+                                                            id: '{{ $customer->encrypted_id }}',
+                                                            name: @js($customer->name),
+                                                            contact_person: @js($customer->contact_person ?? ''),
+                                                            phone: @js($customer->phone ?? ''),
+                                                            email: @js($customer->email ?? ''),
+                                                            address: @js($customer->address)
+                                                        }; openEditModal = true"
+                                                        class="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-[var(--nmis-primary)] hover:text-white transition-all opacity-60 hover:opacity-100" title="Edit">
                                                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                                     </svg>
                                                 </button>
                                             @endcan
                                             @can('customers.delete')
-                                                <button class="rounded-lg bg-slate-100 p-2 text-rose-600 hover:bg-rose-600 hover:text-white transition-all opacity-60 hover:opacity-100" title="Delete">
+                                                <button type="button"
+                                                        @click="deleteTarget = { id: '{{ $customer->encrypted_id }}', name: @js($customer->name) }; openDeleteModal = true"
+                                                        class="rounded-lg bg-slate-100 p-2 text-rose-600 hover:bg-rose-600 hover:text-white transition-all opacity-60 hover:opacity-100" title="Delete">
                                                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                                     </svg>

@@ -26,19 +26,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read_all');
     Route::post('/notifications/{notificationId}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
 
-    Route::middleware('permission:customers.view|customers.create')->group(function () {
+    Route::middleware('permission:customers.view|customers.create|customers.edit|customers.delete')->group(function () {
         Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
     });
     Route::post('/customers', [CustomerController::class, 'store'])->middleware('permission:customers.create')->name('customers.store');
+    Route::put('/customers/{customerId}', [CustomerController::class, 'update'])->middleware('permission:customers.edit')->name('customers.update');
+    Route::delete('/customers/{customerId}', [CustomerController::class, 'destroy'])->middleware('permission:customers.delete')->name('customers.destroy');
 
     Route::middleware('permission:trips.view|trips.create')->group(function () {
         Route::get('/trips', [TripController::class, 'index'])->name('trips.index');
+        Route::get('/trips/{tripId}', [TripController::class, 'show'])->name('trips.show');
     });
     Route::post('/trips', [TripController::class, 'store'])->middleware('permission:trips.create')->name('trips.store');
     Route::post('/trips/{tripId}/close', [TripController::class, 'close'])->middleware('permission:trips.close')->name('trips.close');
 
     Route::middleware('permission:orders.view|orders.create')->group(function () {
         Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/{orderId}', [OrderController::class, 'show'])->name('orders.show');
     });
     Route::post('/orders', [OrderController::class, 'store'])->middleware('permission:orders.create')->name('orders.store');
     Route::post('/orders/{orderId}/status', [OrderController::class, 'updateStatus'])->middleware('permission:orders.status.update')->name('orders.status.update');
@@ -50,12 +54,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/fleet', [FleetController::class, 'index'])->name('fleet.index');
     });
     Route::post('/fleet', [FleetController::class, 'store'])->middleware('permission:fleet.create')->name('fleet.store');
+    Route::delete('/fleet/{fleetId}', [FleetController::class, 'destroy'])->middleware('permission:fleet.delete')->name('fleet.destroy');
 
     Route::middleware('permission:drivers.view|drivers.create')->group(function () {
         Route::get('/drivers', [DriverController::class, 'index'])->name('drivers.index');
     });
     Route::post('/drivers', [DriverController::class, 'store'])->middleware('permission:drivers.create')->name('drivers.store');
     Route::put('/drivers/{driverId}', [DriverController::class, 'update'])->middleware('permission:drivers.update')->name('drivers.update');
+    Route::delete('/drivers/{driverId}', [DriverController::class, 'destroy'])->middleware('permission:drivers.delete')->name('drivers.destroy');
 
     Route::middleware('permission:fuel.view|fuel.create')->group(function () {
         Route::get('/fuel', [FuelRequisitionController::class, 'index'])->name('fuel.index');

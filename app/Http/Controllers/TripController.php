@@ -38,10 +38,53 @@ class TripController extends Controller
                 search: $request->string('search')->toString() ?: null
             );
 
-            return response()->json(['data' => TripListResource::collection($trips)]);
+            $total = $this->tripRepository->countForIndex(
+                user: $request->user(),
+                status: $request->string('status')->toString() ?: null,
+                search: $request->string('search')->toString() ?: null
+            );
+
+            $stats = $this->tripRepository->statsForUser($request->user());
+
+            return response()->json([
+                'data' => TripListResource::collection($trips),
+                'meta' => [
+                    'total' => $total,
+                    'skip' => $skip,
+                    'take' => $take,
+                ],
+                'stats' => $stats,
+            ]);
         }
 
         return view('trips.index');
+    }
+
+    public function show(Request $request, string $tripId): View
+    {
+        $trip = Trip::query()
+            ->with([
+                'creator:id,name',
+                'closer:id,name',
+                'orders' => fn ($query) => $query->with('customer:id,name')->latest(),
+            ])
+            ->findOrFail(EncryptedId::decode($tripId));
+
+        $this->authorize('view', $trip);
+
+        $orders = $trip->orders;
+        $statusSummary = [
+            'total' => $orders->count(),
+            'created' => $orders->where('status', 'created')->count(),
+            'processing' => $orders->where('status', 'processing')->count(),
+            'assigned' => $orders->where('status', 'assigned')->count(),
+            'completed' => $orders->where('status', 'completed')->count(),
+        ];
+
+        return view('trips.show', [
+            'trip' => $trip,
+            'statusSummary' => $statusSummary,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse

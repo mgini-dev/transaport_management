@@ -19,6 +19,8 @@ class RolePermissionSeeder extends Seeder
         $permissions = [
             'customers.view',
             'customers.create',
+            'customers.edit',
+            'customers.delete',
             'trips.view',
             'trips.view_all',
             'trips.create',
@@ -37,6 +39,7 @@ class RolePermissionSeeder extends Seeder
             'drivers.view_all',
             'drivers.create',
             'drivers.update',
+            'drivers.delete',
             'fuel.view',
             'fuel.view_all',
             'fuel.create',
@@ -53,8 +56,8 @@ class RolePermissionSeeder extends Seeder
         }
 
         $roles = [
-            'Order Creator' => ['customers.view', 'customers.create', 'trips.view', 'orders.view', 'orders.create'],
-            'Fleet Officer' => ['trips.view', 'orders.view', 'orders.view_all', 'orders.process', 'orders.status.update', 'orders.view_distance', 'fleet.view', 'fleet.view_all', 'fleet.create', 'fleet.assign', 'drivers.view', 'drivers.view_all', 'drivers.create', 'drivers.update'],
+            'Order Creator' => ['customers.view', 'customers.create', 'customers.edit', 'customers.delete', 'trips.view', 'orders.view', 'orders.create'],
+            'Fleet Officer' => ['trips.view', 'orders.view', 'orders.view_all', 'orders.process', 'orders.status.update', 'orders.view_distance', 'fleet.view', 'fleet.view_all', 'fleet.create', 'fleet.assign', 'drivers.view', 'drivers.view_all', 'drivers.create', 'drivers.update', 'drivers.delete'],
             'Fuel Officer' => ['orders.view', 'orders.view_all', 'orders.view_distance', 'fuel.view', 'fuel.view_all', 'fuel.create'],
             'Approver' => ['trips.view', 'trips.view_all', 'orders.view', 'orders.view_all', 'fuel.view', 'fuel.view_all', 'fuel.approve.supervisor'],
             'Accountant' => ['trips.view', 'trips.view_all', 'orders.view', 'orders.view_all', 'fuel.view', 'fuel.view_all', 'fuel.approve.accounting'],

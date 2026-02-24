@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Fleet;
 use App\Services\AuditLogService;
+use App\Support\EncryptedId;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -42,5 +43,28 @@ class FleetController extends Controller
         );
 
         return back()->with('status', 'Fleet created.');
+    }
+
+    public function destroy(Request $request, string $fleetId): RedirectResponse
+    {
+        $fleet = Fleet::query()->withCount('legs')->findOrFail(EncryptedId::decode($fleetId));
+
+        if ($fleet->legs_count > 0) {
+            return back()->withErrors(['fleet' => 'Cannot delete fleet that has assigned trip legs.']);
+        }
+
+        $fleetCode = $fleet->fleet_code;
+        $fleet->delete();
+
+        $this->auditLogService->record(
+            action: 'fleet.deleted',
+            user: $request->user(),
+            loggable: null,
+            context: ['fleet_code' => $fleetCode],
+            ipAddress: $request->ip(),
+            userAgent: $request->userAgent()
+        );
+
+        return back()->with('status', 'Fleet deleted.');
     }
 }

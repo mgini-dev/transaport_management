@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Driver;
 use App\Models\Fleet;
+use App\Models\OrderLeg;
 use App\Repositories\DriverRepository;
 use App\Services\AuditLogService;
 use App\Support\EncryptedId;
+use App\Support\NmisDataScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -48,15 +50,38 @@ class DriverController extends Controller
             ]);
         }
 
+        $search = $request->string('search')->toString();
+        $active = $request->string('active')->toString();
+
+        $baseQuery = NmisDataScope::ownOrAll(
+            query: Driver::query(),
+            user: $request->user(),
+            ownerColumn: 'created_by',
+            viewAllPermission: 'drivers.view_all'
+        );
+
+        $statsQuery = clone $baseQuery;
+        $listQuery = (clone $baseQuery)
+            ->with('fleet')
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($inner) use ($search) {
+                    $inner->where('name', 'like', '%'.$search.'%')
+                        ->orWhere('license_number', 'like', '%'.$search.'%')
+                        ->orWhere('mobile_number', 'like', '%'.$search.'%');
+                });
+            })
+            ->when($active !== '', fn ($query) => $query->where('is_active', (bool) $active))
+            ->latest();
+
         return view('drivers.index', [
             'fleets' => Fleet::query()->orderBy('fleet_code')->get(),
-            'drivers' => $this->driverRepository->listForIndex(
-                user: $request->user(),
-                skip: 0,
-                take: 200,
-                search: $request->string('search')->toString() ?: null,
-                active: $request->string('active')->toString()
-            ),
+            'drivers' => $listQuery->paginate(20)->withQueryString(),
+            'driverStats' => [
+                'total' => (clone $statsQuery)->count(),
+                'active' => (clone $statsQuery)->where('is_active', true)->count(),
+                'inactive' => (clone $statsQuery)->where('is_active', false)->count(),
+                'with_fleet' => (clone $statsQuery)->whereNotNull('fleet_id')->count(),
+            ],
         ]);
     }
 
@@ -128,5 +153,29 @@ class DriverController extends Controller
         );
 
         return back()->with('status', 'Driver updated successfully.');
+    }
+
+    public function destroy(Request $request, string $driverId): RedirectResponse
+    {
+        $driver = Driver::query()->findOrFail(EncryptedId::decode($driverId));
+        $this->authorize('delete', $driver);
+
+        if (OrderLeg::query()->where('driver_id', $driver->id)->exists()) {
+            return back()->withErrors(['driver' => 'Cannot delete driver with assigned trip legs.']);
+        }
+
+        $driverName = $driver->name;
+        $driver->delete();
+
+        $this->auditLogService->record(
+            action: 'driver.deleted',
+            user: $request->user(),
+            loggable: null,
+            context: ['name' => $driverName],
+            ipAddress: $request->ip(),
+            userAgent: $request->userAgent()
+        );
+
+        return back()->with('status', 'Driver deleted successfully.');
     }
 }

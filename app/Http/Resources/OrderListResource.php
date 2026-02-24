@@ -24,6 +24,7 @@ class OrderListResource extends JsonResource
             'status' => $this->status,
             'distance_km' => $request->user()->can('orders.view_distance') ? $this->distance_km : null,
             'legs_url' => route('orders.legs.index', EncryptedId::encode($this->id)),
+            'show_url' => route('orders.show', EncryptedId::encode($this->id)),
             'can_manage_legs' => $request->user()->can('fleet.assign'),
         ];
     }

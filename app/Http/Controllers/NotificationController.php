@@ -20,24 +20,47 @@ class NotificationController extends Controller
     public function index(Request $request): JsonResponse
     {
         $skip = (int) $request->integer('skip', 0);
-        $take = min((int) $request->integer('take', 20), 100);
+        $take = min((int) $request->integer('take', 10), 100);
+        $search = trim($request->string('search')->toString());
 
-        $notifications = $request->user()
+        $baseQuery = $request->user()
             ->notifications()
-            ->latest()
+            ->latest();
+
+        if ($search !== '') {
+            $baseQuery->where(function ($query) use ($search) {
+                $query->where('type', 'like', '%'.$search.'%')
+                    ->orWhere('data', 'like', '%'.$search.'%');
+            });
+        }
+
+        $total = (clone $baseQuery)->count();
+        $unread = (clone $baseQuery)->whereNull('read_at')->count();
+        $read = max($total - $unread, 0);
+
+        $notifications = (clone $baseQuery)
             ->skip($skip)
             ->take($take)
             ->get()
             ->map(function ($item) {
                 return [
                     'id' => $item->id,
-                    'read_at' => $item->read_at,
-                    'created_at' => $item->created_at,
+                    'read_at' => $item->read_at?->toDateTimeString(),
+                    'created_at' => $item->created_at?->toDateTimeString(),
                     'data' => $item->data,
                 ];
             });
 
-        return response()->json(['data' => $notifications]);
+        return response()->json([
+            'data' => $notifications,
+            'meta' => [
+                'total' => $total,
+                'unread' => $unread,
+                'read' => $read,
+                'skip' => $skip,
+                'take' => $take,
+            ],
+        ]);
     }
 
     public function markAllRead(Request $request): RedirectResponse
@@ -75,6 +98,9 @@ class NotificationController extends Controller
 
         $notification->markAsRead();
 
-        return response()->json(['message' => 'Notification marked as read.']);
+        return response()->json([
+            'message' => 'Notification marked as read.',
+            'unread_count' => $request->user()->unreadNotifications()->count(),
+        ]);
     }
 }

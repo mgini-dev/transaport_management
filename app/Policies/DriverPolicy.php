@@ -30,4 +30,13 @@ class DriverPolicy
 
         return $user->can('drivers.view_all') || $driver->created_by === $user->id;
     }
+
+    public function delete(User $user, Driver $driver): bool
+    {
+        if (! $user->can('drivers.delete')) {
+            return false;
+        }
+
+        return $user->can('drivers.view_all') || $driver->created_by === $user->id;
+    }
 }

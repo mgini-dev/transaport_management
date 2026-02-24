@@ -14,14 +14,25 @@ class LogController extends Controller
     {
         $this->authorize('viewAny', AuditLog::class);
 
-        $logs = AuditLog::query()
+        $perPage = (int) $request->integer('per_page', 10);
+        $perPage = in_array($perPage, [10, 25, 50, 100], true) ? $perPage : 10;
+
+        $baseQuery = AuditLog::query()
             ->with('user')
-            ->when($request->filled('action'), fn ($query) => $query->where('action', 'like', '%'.$request->string('action').'%'))
+            ->when($request->filled('action'), fn ($query) => $query->where('action', 'like', '%'.$request->string('action')->toString().'%'));
+
+        $logs = (clone $baseQuery)
             ->latest()
-            ->paginate(25)
+            ->paginate($perPage)
             ->withQueryString();
 
-        return view('admin.logs.index', compact('logs'));
+        $stats = [
+            'total' => (clone $baseQuery)->count(),
+            'unique_actions' => (clone $baseQuery)->distinct('action')->count('action'),
+            'active_users' => (clone $baseQuery)->whereNotNull('user_id')->distinct('user_id')->count('user_id'),
+        ];
+
+        return view('admin.logs.index', compact('logs', 'stats', 'perPage'));
     }
 
     public function exportCsv(Request $request): StreamedResponse

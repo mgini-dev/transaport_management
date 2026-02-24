@@ -122,8 +122,7 @@
                     <thead class="bg-gradient-to-r from-slate-50 to-white">
                         <tr>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Trip Number</th>
-                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Origin</th>
-                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Destination</th>
+                      
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Created</th>
                             <th scope="col" class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Action</th>
@@ -171,6 +170,38 @@
             </div>
         </div>
 
+        <div id="close-trip-modal" class="fixed inset-0 z-50 hidden">
+            <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeTripModal()"></div>
+            <div class="relative flex min-h-full items-center justify-center p-4">
+                <div class="w-full max-w-md rounded-2xl border border-slate-200/60 bg-white shadow-2xl">
+                    <div class="border-b border-slate-200/70 px-6 py-4">
+                        <h3 class="text-lg font-semibold text-slate-900">Close Trip</h3>
+                        <p class="mt-1 text-sm text-slate-500">This action cannot be undone.</p>
+                    </div>
+                    <div class="px-6 py-5">
+                        <p class="text-sm text-slate-700">
+                            Are you sure you want to close
+                            <span id="close-trip-number" class="font-semibold text-slate-900"></span>?
+                        </p>
+                    </div>
+                    <div class="flex items-center justify-end gap-3 border-t border-slate-200/70 px-6 py-4">
+                        <button type="button"
+                                onclick="closeTripModal()"
+                                class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-all">
+                            Cancel
+                        </button>
+                        <form id="close-trip-form" method="POST">
+                            @csrf
+                            <button type="submit"
+                                    class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 transition-all">
+                                Yes, Close Trip
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Pagination -->
         <div class="flex items-center justify-between">
             <div class="text-sm text-slate-500" id="pagination-info"></div>
@@ -201,17 +232,11 @@
             background-clip: text;
         }
         
-        /* Status badges */
-        .status-badge {
-            @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
-        }
-        
-        .status-badge.open {
-            @apply bg-[var(--nmis-secondary)]/10 text-[var(--nmis-secondary)];
-        }
-        
-        .status-badge.closed {
-            @apply bg-slate-100 text-slate-600;
+        .status-dot {
+            display: inline-block;
+            width: 0.45rem;
+            height: 0.45rem;
+            border-radius: 9999px;
         }
     </style>
 
@@ -252,42 +277,46 @@
                 }
 
                 payload.data.forEach((trip) => {
-                    const statusClass = trip.status === 'open' ? 'open' : 'closed';
                     const statusText = trip.status.charAt(0).toUpperCase() + trip.status.slice(1);
+                    const statusBadge = trip.status === 'open'
+                        ? `<span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                                <span class="status-dot bg-emerald-500"></span>${statusText}
+                           </span>`
+                        : `<span class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                                <span class="status-dot bg-slate-500"></span>${statusText}
+                           </span>`;
                     
                     table.insertAdjacentHTML('beforeend', `
                         <tr class="hover:bg-slate-50/80 transition-colors duration-200 group">
                             <td class="whitespace-nowrap px-6 py-4">
                                 <div class="text-sm font-medium text-slate-900">${trip.trip_number}</div>
                             </td>
+                    
                             <td class="whitespace-nowrap px-6 py-4">
-                                <div class="text-sm text-slate-900">${trip.origin || 'N/A'}</div>
-                            </td>
-                            <td class="whitespace-nowrap px-6 py-4">
-                                <div class="text-sm text-slate-900">${trip.destination || 'N/A'}</div>
-                            </td>
-                            <td class="whitespace-nowrap px-6 py-4">
-                                <span class="status-badge ${statusClass}">
-                                    ${statusText}
-                                </span>
+                                ${statusBadge}
                             </td>
                             <td class="whitespace-nowrap px-6 py-4">
                                 <div class="text-sm text-slate-500">${new Date(trip.created_at).toLocaleDateString()}</div>
                             </td>
                             <td class="whitespace-nowrap px-6 py-4 text-right">
                                 <div class="flex items-center justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity duration-200">
-                                    ${trip.status === 'open' ? `
-                                        <form method="POST" action="/trips/${trip.id}/close" class="inline" 
-                                              onsubmit="return confirm('Are you sure you want to close this trip?')">
-                                            @csrf
-                                            <button type="submit" 
-                                                    class="rounded-lg bg-slate-100 p-2 text-amber-600 hover:bg-amber-600 hover:text-white transition-all"
-                                                    title="Close Trip">
-                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                                </svg>
-                                            </button>
-                                        </form>
+                                    <a href="${trip.show_url}"
+                                       class="rounded-lg bg-slate-100 p-2 text-[var(--nmis-primary)] hover:bg-[var(--nmis-primary)] hover:text-white transition-all"
+                                       title="View Trip">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5s8.268 2.943 9.542 7c-1.274 4.057-5.065 7-9.542 7s-8.268-2.943-9.542-7z"></path>
+                                        </svg>
+                                    </a>
+                                    ${trip.status === 'open' && trip.can_close ? `
+                                        <button type="button"
+                                                onclick="openCloseTripModal('${trip.close_url}', '${trip.trip_number}')"
+                                                class="rounded-lg bg-slate-100 p-2 text-amber-600 hover:bg-amber-600 hover:text-white transition-all"
+                                                title="Close Trip">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                        </button>
                                     ` : '-'}
                                 </div>
                             </td>
@@ -326,6 +355,12 @@
         function updatePagination(meta) {
             const total = meta.total || 0;
             const lastPage = Math.ceil(total / pageSize) - 1;
+
+            if (total === 0) {
+                document.getElementById('pagination-info').innerHTML = 'No records found';
+                document.getElementById('pagination-controls').innerHTML = '';
+                return;
+            }
             
             document.getElementById('pagination-info').innerHTML = 
                 `Showing ${currentPage * pageSize + 1} to ${Math.min((currentPage + 1) * pageSize, total)} of ${total} trips`;
@@ -354,6 +389,23 @@
         function changePage(page) {
             currentPage = page;
             loadTrips(false);
+        }
+
+        function openCloseTripModal(closeUrl, tripNumber) {
+            const modal = document.getElementById('close-trip-modal');
+            const form = document.getElementById('close-trip-form');
+            const numberLabel = document.getElementById('close-trip-number');
+            if (!modal || !form || !numberLabel) return;
+
+            form.action = closeUrl;
+            numberLabel.textContent = tripNumber;
+            modal.classList.remove('hidden');
+        }
+
+        function closeTripModal() {
+            const modal = document.getElementById('close-trip-modal');
+            if (!modal) return;
+            modal.classList.add('hidden');
         }
 
         // Initialize
