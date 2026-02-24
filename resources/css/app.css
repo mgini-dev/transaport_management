@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --nmis-primary: #1b3b86;
+        --nmis-secondary: #2a9d8f;
+        --nmis-accent: #6cb63f;
+        --nmis-sidebar-dark: #0a1f44;
+        --nmis-sidebar-mid: #132f66;
+        --nmis-bg: #eef2f7;
+        --nmis-text: #24324a;
+    }
+
+    body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--nmis-text);
+        background: var(--nmis-bg);
+    }
+}
+
+@layer components {
+    .nmis-body {
+        @apply min-h-screen;
+        background: radial-gradient(circle at 20% 15%, #ffffff 0%, #eef2f7 48%, #e4e9f2 100%);
+    }
+
+    .nmis-app {
+        @apply min-h-screen flex;
+    }
+
+    .nmis-sidebar {
+        @apply w-72 p-5 fixed inset-y-0 left-0 z-40 transform -translate-x-full transition-all duration-300 lg:translate-x-0 lg:static lg:block;
+        background: linear-gradient(175deg, var(--nmis-sidebar-dark), var(--nmis-sidebar-mid));
+        box-shadow: 6px 0 24px rgba(0, 0, 0, 0.24);
+    }
+    .nmis-sidebar-mobile-open {
+        @apply translate-x-0;
+    }
+    .nmis-sidebar-collapsed {
+        @apply w-24;
+    }
+
+    .nmis-logo-wrap {
+        @apply mb-8 rounded-xl border border-white/20 bg-white/10 p-3 flex items-center gap-3;
+    }
+
+    .nmis-menu-title {
+        @apply mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-300;
+    }
+
+    .nmis-link {
+        @apply rounded-lg px-3 py-2 text-slate-200 transition flex items-center gap-2;
+    }
+    .nmis-link-icon { @apply inline-flex h-5 w-5 items-center justify-center text-base; }
+
+    .nmis-link:hover {
+        @apply text-white;
+        background: rgba(108, 182, 63, 0.25);
+    }
+
+    .nmis-link.active {
+        background: linear-gradient(90deg, rgba(108, 182, 63, 0.32), rgba(42, 157, 143, 0.25));
+        @apply text-white font-semibold;
+    }
+
+    .nmis-main {
+        @apply flex-1 min-h-screen flex flex-col lg:ml-0;
+    }
+    .nmis-main-expanded .nmis-content {
+        @apply md:px-4;
+    }
+
+    .nmis-topbar {
+        @apply border-b border-slate-200 bg-white px-6 py-4 flex items-center justify-between;
+        box-shadow: 0 4px 16px rgba(27, 59, 134, 0.08);
+    }
+
+    .nmis-content {
+        @apply p-4 md:p-6 flex-1;
+    }
+
+    .nmis-card {
+        @apply rounded-2xl border border-slate-200 bg-white p-5 md:p-6;
+        box-shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
+    }
+}
