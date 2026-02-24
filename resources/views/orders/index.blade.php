@@ -4,6 +4,18 @@
     </x-slot>
 
     <div class="space-y-6">
+        <div class="grid gap-2 sm:grid-cols-3">
+            <input id="order-search" class="rounded-md border-slate-300" placeholder="Search order/cargo..." />
+            <select id="order-status" class="rounded-md border-slate-300">
+                <option value="">All statuses</option>
+                <option value="created">Created</option>
+                <option value="processing">Processing</option>
+                <option value="assigned">Assigned</option>
+                <option value="completed">Completed</option>
+            </select>
+            <button type="button" id="order-filter-btn" class="rounded-md bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200">Apply Filters</button>
+        </div>
+
         @can('orders.create')
             <form method="POST" action="{{ route('orders.store') }}" class="grid gap-3 rounded-lg border border-slate-200 p-4 sm:grid-cols-2">
                 @csrf
@@ -52,7 +64,9 @@
     @push('scripts')
         <script>
             async function loadOrders() {
-                const response = await fetch('{{ route('orders.index') }}?skip=0&take=50', { headers: { 'X-Requested-With': 'XMLHttpRequest' }});
+                const search = encodeURIComponent(document.getElementById('order-search').value || '');
+                const status = encodeURIComponent(document.getElementById('order-status').value || '');
+                const response = await fetch(`{{ route('orders.index') }}?skip=0&take=50&search=${search}&status=${status}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' }});
                 const payload = await response.json();
                 const table = document.getElementById('order-table');
                 table.innerHTML = '';
@@ -71,6 +85,7 @@
                 });
             }
             loadOrders();
+            document.getElementById('order-filter-btn')?.addEventListener('click', loadOrders);
         </script>
     @endpush
 </x-app-layout>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
 
 class NotificationController extends Controller
@@ -44,6 +45,26 @@ class NotificationController extends Controller
         $request->user()->unreadNotifications->markAsRead();
 
         return back()->with('status', 'All notifications marked as read.');
+    }
+
+    public function exportCsv(Request $request): StreamedResponse
+    {
+        $notifications = $request->user()->notifications()->latest()->limit(3000)->get();
+
+        return response()->streamDownload(function () use ($notifications) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Date', 'Title', 'Message', 'Type', 'Read']);
+            foreach ($notifications as $item) {
+                fputcsv($handle, [
+                    (string) $item->created_at,
+                    data_get($item->data, 'title'),
+                    data_get($item->data, 'message'),
+                    data_get($item->data, 'type'),
+                    $item->read_at ? 'Yes' : 'No',
+                ]);
+            }
+            fclose($handle);
+        }, 'nmis-notifications-'.now()->format('Ymd-His').'.csv');
     }
 
     public function markAsRead(Request $request, string $notificationId): JsonResponse

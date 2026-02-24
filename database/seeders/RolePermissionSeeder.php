@@ -43,6 +43,7 @@ class RolePermissionSeeder extends Seeder
             'fuel.approve.supervisor',
             'fuel.approve.accounting',
             'admin.users.manage',
+            'admin.roles.manage',
             'admin.logs.view',
             'admin.dashboard.view_all',
         ];

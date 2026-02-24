@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Collection;
 
 class TripRepository
 {
-    public function listForIndex(User $user, int $skip, int $take): Collection
+    public function listForIndex(User $user, int $skip, int $take, ?string $status = null, ?string $search = null): Collection
     {
         return NmisDataScope::ownOrAll(
             query: Trip::query(),
@@ -17,6 +17,8 @@ class TripRepository
             ownerColumn: 'created_by',
             viewAllPermission: 'trips.view_all'
         )
+            ->when($status, fn ($query) => $query->where('status', $status))
+            ->when($search, fn ($query) => $query->where('trip_number', 'like', '%'.$search.'%'))
             ->latest()
             ->skip($skip)
             ->take($take)

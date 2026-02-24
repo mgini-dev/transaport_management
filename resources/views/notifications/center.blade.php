@@ -4,10 +4,13 @@
     </x-slot>
 
     <div class="space-y-4">
-        <form method="POST" action="{{ route('notifications.read_all') }}">
-            @csrf
-            <button class="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white">Mark all as read</button>
-        </form>
+        <div class="flex flex-wrap gap-2">
+            <form method="POST" action="{{ route('notifications.read_all') }}">
+                @csrf
+                <button class="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white">Mark all as read</button>
+            </form>
+            <a href="{{ route('notifications.export.csv') }}" class="rounded-md bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200">Export CSV</a>
+        </div>
 
         <div class="overflow-hidden rounded-lg border border-slate-200">
             <table class="min-w-full divide-y divide-slate-200 text-sm">

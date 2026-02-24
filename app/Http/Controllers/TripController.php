@@ -30,7 +30,13 @@ class TripController extends Controller
             $skip = (int) $request->integer('skip', 0);
             $take = min((int) $request->integer('take', 15), 100);
 
-            $trips = $this->tripRepository->listForIndex($request->user(), $skip, $take);
+            $trips = $this->tripRepository->listForIndex(
+                user: $request->user(),
+                skip: $skip,
+                take: $take,
+                status: $request->string('status')->toString() ?: null,
+                search: $request->string('search')->toString() ?: null
+            );
 
             return response()->json(['data' => TripListResource::collection($trips)]);
         }

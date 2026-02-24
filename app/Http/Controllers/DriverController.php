@@ -29,7 +29,13 @@ class DriverController extends Controller
             $take = min((int) $request->integer('take', 15), 100);
 
             return response()->json([
-                'data' => $this->driverRepository->listForIndex($request->user(), $skip, $take)->map(function (Driver $driver) {
+                'data' => $this->driverRepository->listForIndex(
+                    user: $request->user(),
+                    skip: $skip,
+                    take: $take,
+                    search: $request->string('search')->toString() ?: null,
+                    active: $request->string('active')->toString()
+                )->map(function (Driver $driver) {
                     return [
                         'id' => $driver->encrypted_id,
                         'name' => $driver->name,
@@ -44,7 +50,13 @@ class DriverController extends Controller
 
         return view('drivers.index', [
             'fleets' => Fleet::query()->orderBy('fleet_code')->get(),
-            'drivers' => $this->driverRepository->listForIndex($request->user(), 0, 200),
+            'drivers' => $this->driverRepository->listForIndex(
+                user: $request->user(),
+                skip: 0,
+                take: 200,
+                search: $request->string('search')->toString() ?: null,
+                active: $request->string('active')->toString()
+            ),
         ]);
     }
 

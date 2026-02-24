@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\LogController;
+use App\Http\Controllers\Admin\RolePermissionController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
@@ -21,6 +22,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/notifications', [NotificationController::class, 'center'])->name('notifications.center');
     Route::get('/notifications/data', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/export/csv', [NotificationController::class, 'exportCsv'])->name('notifications.export.csv');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read_all');
     Route::post('/notifications/{notificationId}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
 
@@ -64,12 +66,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::prefix('admin')->name('admin.')->middleware('permission:admin.users.manage')->group(function () {
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::get('/users/export/csv', [UserController::class, 'exportCsv'])->name('users.export.csv');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     });
 
+    Route::prefix('admin')->name('admin.')->middleware('permission:admin.roles.manage')->group(function () {
+        Route::get('/roles-permissions', [RolePermissionController::class, 'index'])->name('roles.index');
+        Route::post('/permissions', [RolePermissionController::class, 'storePermission'])->name('permissions.store');
+        Route::post('/roles', [RolePermissionController::class, 'storeRole'])->name('roles.store');
+        Route::put('/roles/{role}', [RolePermissionController::class, 'updateRole'])->name('roles.update');
+        Route::put('/users/{user}/permissions', [RolePermissionController::class, 'updateUserPermissions'])->name('users.permissions.update');
+    });
+
     Route::prefix('admin')->name('admin.')->middleware('permission:admin.logs.view')->group(function () {
         Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
+        Route::get('/logs/export/csv', [LogController::class, 'exportCsv'])->name('logs.export.csv');
     });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

@@ -1,41 +1,72 @@
-<aside class="nmis-sidebar" :class="{ 'nmis-sidebar-collapsed': sidebarCollapsed, 'nmis-sidebar-mobile-open': mobileSidebar }">
-    <div class="nmis-logo-wrap">
-        <img src="{{ asset('images/nexus-logo.png') }}" alt="NexusFlow" class="h-10 w-auto">
-        <div x-show="!sidebarCollapsed">
-            <p class="text-xs uppercase tracking-[0.22em] text-slate-300">NexusFlow</p>
-            <p class="text-sm font-semibold text-white">NMIS Console</p>
+<aside class="fixed inset-y-0 left-0 z-40 w-64 bg-gradient-to-b from-[var(--nmis-primary)] to-[#0f1f3f] shadow-2xl transition-all duration-300 lg:translate-x-0"
+       :class="{ 
+           '-translate-x-full': !mobileSidebar && !sidebarCollapsed,
+           'translate-x-0': mobileSidebar || sidebarCollapsed,
+           'lg:w-20': sidebarCollapsed 
+       }">
+    
+    <!-- Logo Section -->
+    <div class="flex items-center gap-3 px-4 py-5 border-b border-white/10" 
+         :class="{ 'justify-center': sidebarCollapsed }">
+        <img src="{{ asset('images/nexus-logo.png') }}" alt="NexusFlow" class="h-8 w-auto">
+        <div x-show="!sidebarCollapsed" class="overflow-hidden">
+            <p class="text-xs uppercase tracking-wider text-slate-300/60">NexusFlow</p>
+            <p class="text-sm font-bold text-white">NMIS Portal</p>
         </div>
     </div>
 
-    <p class="nmis-menu-title" x-show="!sidebarCollapsed">Navigation</p>
-    <nav>
-        <ul class="space-y-1 text-sm">
-            <li><a class="nmis-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}"><span class="nmis-link-icon">🏠</span><span x-show="!sidebarCollapsed">Dashboard</span></a></li>
-            @can('customers.view')
-                <li><a class="nmis-link {{ request()->routeIs('customers.*') ? 'active' : '' }}" href="{{ route('customers.index') }}"><span class="nmis-link-icon">👥</span><span x-show="!sidebarCollapsed">Customers</span></a></li>
-            @endcan
-            @can('trips.view')
-                <li><a class="nmis-link {{ request()->routeIs('trips.*') ? 'active' : '' }}" href="{{ route('trips.index') }}"><span class="nmis-link-icon">🧭</span><span x-show="!sidebarCollapsed">Trips</span></a></li>
-            @endcan
-            @can('orders.view')
-                <li><a class="nmis-link {{ request()->routeIs('orders.*') ? 'active' : '' }}" href="{{ route('orders.index') }}"><span class="nmis-link-icon">📦</span><span x-show="!sidebarCollapsed">Orders</span></a></li>
-            @endcan
-            @can('fleet.view')
-                <li><a class="nmis-link {{ request()->routeIs('fleet.*') ? 'active' : '' }}" href="{{ route('fleet.index') }}"><span class="nmis-link-icon">🚚</span><span x-show="!sidebarCollapsed">Fleet</span></a></li>
-            @endcan
-            @can('drivers.view')
-                <li><a class="nmis-link {{ request()->routeIs('drivers.*') ? 'active' : '' }}" href="{{ route('drivers.index') }}"><span class="nmis-link-icon">🪪</span><span x-show="!sidebarCollapsed">Drivers</span></a></li>
-            @endcan
-            @can('fuel.view')
-                <li><a class="nmis-link {{ request()->routeIs('fuel.*') ? 'active' : '' }}" href="{{ route('fuel.index') }}"><span class="nmis-link-icon">⛽</span><span x-show="!sidebarCollapsed">Fuel Requisitions</span></a></li>
-            @endcan
-            <li><a class="nmis-link {{ request()->routeIs('notifications.*') ? 'active' : '' }}" href="{{ route('notifications.center') }}"><span class="nmis-link-icon">🔔</span><span x-show="!sidebarCollapsed">Notifications</span></a></li>
-            @can('admin.users.manage')
-                <li><a class="nmis-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}"><span class="nmis-link-icon">🛡️</span><span x-show="!sidebarCollapsed">Admin Users</span></a></li>
-            @endcan
-            @can('admin.logs.view')
-                <li><a class="nmis-link {{ request()->routeIs('admin.logs.*') ? 'active' : '' }}" href="{{ route('admin.logs.index') }}"><span class="nmis-link-icon">📜</span><span x-show="!sidebarCollapsed">Audit Logs</span></a></li>
-            @endcan
+    <!-- Navigation -->
+    <nav class="p-3 h-[calc(100vh-5rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+        <ul class="space-y-1">
+            @php
+                $navItems = [
+                    ['route' => 'dashboard', 'name' => 'home', 'label' => 'Dashboard', 'permission' => null],
+                    ['route' => 'customers.*', 'name' => 'users', 'label' => 'Customers', 'permission' => 'customers.view'],
+                    ['route' => 'trips.*', 'name' => 'trip', 'label' => 'Trips', 'permission' => 'trips.view'],
+                    ['route' => 'orders.*', 'name' => 'box', 'label' => 'Orders', 'permission' => 'orders.view'],
+                    ['route' => 'fleet.*', 'name' => 'truck', 'label' => 'Fleet', 'permission' => 'fleet.view'],
+                    ['route' => 'drivers.*', 'name' => 'id', 'label' => 'Drivers', 'permission' => 'drivers.view'],
+                    ['route' => 'fuel.*', 'name' => 'fuel', 'label' => 'Fuel Requisitions', 'permission' => 'fuel.view'],
+                    ['route' => 'notifications.*', 'name' => 'bell', 'label' => 'Notifications', 'permission' => null],
+                    ['route' => 'admin.users.*', 'name' => 'shield', 'label' => 'Admin Users', 'permission' => 'admin.users.manage'],
+                    ['route' => 'admin.roles.*', 'name' => 'lock', 'label' => 'Roles & Permissions', 'permission' => 'admin.roles.manage'],
+                    ['route' => 'admin.logs.*', 'name' => 'scroll', 'label' => 'Audit Logs', 'permission' => 'admin.logs.view'],
+                ];
+            @endphp
+
+            @foreach($navItems as $item)
+                @if($item['permission'] ? Gate::allows($item['permission']) : true)
+                    <li>
+                        <a href="{{ route(str_replace('.*', '.index', $item['route'])) }}" 
+                           class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 group relative
+                                  {{ request()->routeIs($item['route']) 
+                                     ? 'bg-white/15 text-white shadow-lg' 
+                                     : 'text-slate-300/90 hover:bg-white/10 hover:text-white' }}"
+                           :class="{ 'justify-center': sidebarCollapsed }">
+                            
+                            <!-- Icon -->
+                            <span class="flex-shrink-0">
+                                @include('layouts.partials.icon', ['name' => $item['name'], 'size' => 'h-5 w-5'])
+                            </span>
+                            
+                            <!-- Label -->
+                            <span x-show="!sidebarCollapsed" class="truncate">{{ $item['label'] }}</span>
+                            
+                            <!-- Active Indicator -->
+                            @if(request()->routeIs($item['route']))
+                                <span class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full"
+                                      :class="{ 'hidden': sidebarCollapsed }"></span>
+                            @endif
+                            
+                            <!-- Tooltip (collapsed mode) -->
+                            <span x-show="sidebarCollapsed" 
+                                  class="absolute left-full ml-2 px-2 py-1 bg-slate-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                                {{ $item['label'] }}
+                            </span>
+                        </a>
+                    </li>
+                @endif
+            @endforeach
         </ul>
     </nav>
 </aside>

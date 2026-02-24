@@ -33,7 +33,13 @@ class OrderController extends Controller
             $skip = (int) $request->integer('skip', 0);
             $take = min((int) $request->integer('take', 15), 100);
 
-            $orders = $this->orderRepository->listForIndex($request->user(), $skip, $take);
+            $orders = $this->orderRepository->listForIndex(
+                user: $request->user(),
+                skip: $skip,
+                take: $take,
+                status: $request->string('status')->toString() ?: null,
+                search: $request->string('search')->toString() ?: null
+            );
 
             return response()->json(['data' => OrderListResource::collection($orders)]);
         }
