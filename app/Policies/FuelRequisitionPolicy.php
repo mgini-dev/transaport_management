@@ -14,6 +14,10 @@ class FuelRequisitionPolicy
 
     public function view(User $user, FuelRequisition $requisition): bool
     {
+        if ($user->can('fuel.approve.supervisor') || $user->can('fuel.approve.accounting')) {
+            return true;
+        }
+
         return $user->can('fuel.view') && ($user->can('fuel.view_all') || $requisition->requested_by === $user->id);
     }
 

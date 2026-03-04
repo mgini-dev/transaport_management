@@ -98,6 +98,18 @@
                                            placeholder="e.g., KAA 123A">
                                 </div>
 
+                                <!-- Trailer Number -->
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                                        Trailer Number <span class="text-rose-500">*</span>
+                                    </label>
+                                    <input type="text"
+                                           name="trailer_number"
+                                           required
+                                           class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
+                                           placeholder="e.g., TRL 908Z">
+                                </div>
+
                                 <!-- Capacity -->
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 mb-1">
@@ -269,6 +281,7 @@
                         <tr>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Fleet Details</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Plate Number</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Trailer</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Capacity</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
                             <th scope="col" class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Actions</th>
@@ -301,6 +314,9 @@
                                     </div>
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4">
+                                    <div class="text-sm font-medium text-slate-900">{{ $fleet->trailer_number ?? '-' }}</div>
+                                </td>
+                                <td class="whitespace-nowrap px-6 py-4">
                                     <div class="text-sm font-medium text-slate-900">{{ number_format($fleet->capacity_tons, 1) }} tons</div>
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4">
@@ -317,7 +333,7 @@
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4 text-right">
                                     <div class="flex items-center justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity duration-200">
-                                        @can('fleet.edit')
+                                        @can('fleet.create')
                                             <button class="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-[var(--nmis-primary)] hover:text-white transition-all" 
                                                     title="Edit Fleet"
                                                     onclick="editFleet('{{ $fleet->encrypted_id }}')">
@@ -346,7 +362,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-6 py-12 text-center">
+                                <td colspan="6" class="px-6 py-12 text-center">
                                     <div class="flex flex-col items-center justify-center">
                                         <div class="rounded-full bg-slate-100 p-3 mb-4">
                                             <svg class="h-8 w-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -426,7 +442,7 @@
                 
                 const fleetCode = row.querySelector('td:first-child .text-sm.font-medium')?.textContent.toLowerCase() || '';
                 const plateNumber = row.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
-                const status = row.querySelector('td:nth-child(4) span')?.textContent.trim().toLowerCase() || '';
+                const status = row.querySelector('td:nth-child(5) span')?.textContent.trim().toLowerCase() || '';
                 
                 const matchesSearch = fleetCode.includes(searchTerm) || plateNumber.includes(searchTerm);
                 const matchesStatus = !statusFilter || status === statusFilter;

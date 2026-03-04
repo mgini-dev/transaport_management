@@ -12,13 +12,21 @@ class NotificationRoutingService
         string $title,
         string $message,
         string $type,
-        array $meta = []
+        array $meta = [],
+        ?callable $filter = null,
+        ?int $excludeUserId = null,
     ): void {
-        User::query()
+        $query = User::query()
             ->permission($permission)
-            ->where('is_active', true)
+            ->where('is_active', true);
+
+        if ($excludeUserId) {
+            $query->whereKeyNot($excludeUserId);
+        }
+
+        $query
             ->cursor()
+            ->filter(fn (User $user) => $filter ? (bool) $filter($user) : true)
             ->each(fn (User $user) => $user->notify(new WorkflowStageNotification($title, $message, $type, $meta)));
     }
 }
-

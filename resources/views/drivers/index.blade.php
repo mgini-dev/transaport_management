@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <h2 class="text-3xl font-bold gradient-text">Driver Management</h2>
-                <p class="mt-2 text-sm text-slate-500">Register, update, and manage driver activation with fleet mapping</p>
+                <p class="mt-2 text-sm text-slate-500">Register and manage drivers. Fleet mapping is done from order leg assignment.</p>
             </div>
             
             @can('drivers.create')
@@ -48,7 +48,7 @@
                          x-transition:leave="transition ease-in duration-200"
                          x-transition:leave-start="opacity-100 scale-100"
                          x-transition:leave-end="opacity-0 scale-95"
-                         class="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
+                         class="relative w-full max-w-4xl rounded-2xl bg-white shadow-2xl">
                         
                         <!-- Modal Header -->
                         <div class="flex items-center justify-between border-b border-slate-200/60 px-6 py-4">
@@ -110,18 +110,55 @@
                                            placeholder="+254 XXX XXX XXX">
                                 </div>
 
-                                <!-- Fleet Assignment -->
+                                <div class="md:col-span-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                                    Fleet assignment is configured in <span class="font-semibold text-slate-700">Orders → Manage Legs</span>.
+                                </div>
+
                                 <div class="md:col-span-2">
                                     <label class="block text-sm font-medium text-slate-700 mb-1">
-                                        Assign Fleet (Optional)
+                                        Driver Address <span class="text-rose-500">*</span>
                                     </label>
-                                    <select name="fleet_id" 
-                                            class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
-                                        <option value="">No fleet assigned</option>
-                                        @foreach ($fleets as $fleet)
-                                            <option value="{{ $fleet->encrypted_id }}">{{ $fleet->fleet_code }} - {{ $fleet->plate_number }} ({{ $fleet->capacity_tons }} tons)</option>
-                                        @endforeach
-                                    </select>
+                                    <textarea name="driver_address"
+                                              rows="2"
+                                              required
+                                              class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all resize-none"
+                                              placeholder="Driver current address"></textarea>
+                                </div>
+
+                                <div class="md:col-span-2 rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-3">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Contact Person 1 (Required)</p>
+                                    <div class="mt-3 grid gap-4 md:grid-cols-2">
+                                        <div>
+                                            <label class="block text-sm font-medium text-slate-700 mb-1">Name <span class="text-rose-500">*</span></label>
+                                            <input type="text" name="contact1_name" required class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200" placeholder="Contact person name">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-slate-700 mb-1">Phone <span class="text-rose-500">*</span></label>
+                                            <input type="text" name="contact1_phone" required class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200" placeholder="Contact phone number">
+                                        </div>
+                                        <div class="md:col-span-2">
+                                            <label class="block text-sm font-medium text-slate-700 mb-1">Address <span class="text-rose-500">*</span></label>
+                                            <textarea name="contact1_address" rows="2" required class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 resize-none" placeholder="Contact person address"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="md:col-span-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-600">Contact Person 2 (Optional)</p>
+                                    <div class="mt-3 grid gap-4 md:grid-cols-2">
+                                        <div>
+                                            <label class="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                                            <input type="text" name="contact2_name" class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20" placeholder="Second contact name">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+                                            <input type="text" name="contact2_phone" class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20" placeholder="Second contact phone">
+                                        </div>
+                                        <div class="md:col-span-2">
+                                            <label class="block text-sm font-medium text-slate-700 mb-1">Address</label>
+                                            <textarea name="contact2_address" rows="2" class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 resize-none" placeholder="Second contact address"></textarea>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <!-- Status -->
@@ -249,19 +286,56 @@
                                        placeholder="+254 XXX XXX XXX">
                             </div>
 
-                            <!-- Fleet Assignment -->
+                            <div class="md:col-span-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                                Fleet mapping is updated automatically when this driver is assigned in <span class="font-semibold text-slate-700">Manage Legs</span>.
+                            </div>
+
                             <div class="md:col-span-2">
                                 <label class="block text-sm font-medium text-slate-700 mb-1">
-                                    Assign Fleet (Optional)
+                                    Driver Address <span class="text-rose-500">*</span>
                                 </label>
-                                <select name="fleet_id" 
-                                        x-model="form.fleet_id"
-                                        class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
-                                    <option value="">No fleet assigned</option>
-                                    @foreach ($fleets as $fleet)
-                                        <option value="{{ $fleet->encrypted_id }}">{{ $fleet->fleet_code }} - {{ $fleet->plate_number }} ({{ $fleet->capacity_tons }} tons)</option>
-                                    @endforeach
-                                </select>
+                                <textarea name="driver_address"
+                                          rows="2"
+                                          x-model="form.driver_address"
+                                          required
+                                          class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all resize-none"
+                                          placeholder="Driver current address"></textarea>
+                            </div>
+
+                            <div class="md:col-span-2 rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-3">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Contact Person 1 (Required)</p>
+                                <div class="mt-3 grid gap-4 md:grid-cols-2">
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">Name <span class="text-rose-500">*</span></label>
+                                        <input type="text" name="contact1_name" x-model="form.contact1_name" required class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200" placeholder="Contact person name">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">Phone <span class="text-rose-500">*</span></label>
+                                        <input type="text" name="contact1_phone" x-model="form.contact1_phone" required class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200" placeholder="Contact phone number">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">Address <span class="text-rose-500">*</span></label>
+                                        <textarea name="contact1_address" rows="2" x-model="form.contact1_address" required class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 resize-none" placeholder="Contact person address"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="md:col-span-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-600">Contact Person 2 (Optional)</p>
+                                <div class="mt-3 grid gap-4 md:grid-cols-2">
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                                        <input type="text" name="contact2_name" x-model="form.contact2_name" class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20" placeholder="Second contact name">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+                                        <input type="text" name="contact2_phone" x-model="form.contact2_phone" class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20" placeholder="Second contact phone">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">Address</label>
+                                        <textarea name="contact2_address" rows="2" x-model="form.contact2_address" class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 resize-none" placeholder="Second contact address"></textarea>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Status -->
@@ -295,6 +369,78 @@
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- View Driver Details Modal -->
+        <div x-show="showViewModal"
+             x-cloak
+             class="fixed inset-0 z-50 overflow-y-auto"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0">
+
+            <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" @click="showViewModal = false"></div>
+
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div x-show="showViewModal"
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 scale-95"
+                     x-transition:enter-end="opacity-100 scale-100"
+                     x-transition:leave="transition ease-in duration-200"
+                     x-transition:leave-start="opacity-100 scale-100"
+                     x-transition:leave-end="opacity-0 scale-95"
+                     class="relative w-full max-w-3xl rounded-2xl bg-white shadow-2xl">
+                    <div class="flex items-center justify-between border-b border-slate-200/60 px-6 py-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-slate-900" x-text="viewDriver.name || 'Driver Details'"></h3>
+                            <p class="text-xs text-slate-500">Full driver profile and emergency contacts</p>
+                        </div>
+                        <button @click="showViewModal = false" class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-500 transition-colors">
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="grid gap-5 p-6 md:grid-cols-2">
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Driver Info</p>
+                            <dl class="mt-3 space-y-2 text-sm">
+                                <div class="flex justify-between gap-3"><dt class="text-slate-500">Name</dt><dd class="font-medium text-slate-900" x-text="viewDriver.name || '-'"></dd></div>
+                                <div class="flex justify-between gap-3"><dt class="text-slate-500">License</dt><dd class="font-medium text-slate-900" x-text="viewDriver.license_number || '-'"></dd></div>
+                                <div class="flex justify-between gap-3"><dt class="text-slate-500">Mobile</dt><dd class="font-medium text-slate-900" x-text="viewDriver.mobile_number || '-'"></dd></div>
+                                <div class="flex justify-between gap-3"><dt class="text-slate-500">Fleet</dt><dd class="font-medium text-slate-900 text-right" x-text="viewDriver.fleet_label || 'No fleet assigned'"></dd></div>
+                            </dl>
+                            <div class="mt-3 border-t border-slate-200 pt-3">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Driver Address</p>
+                                <p class="mt-1 text-sm text-slate-700" x-text="viewDriver.driver_address || '-'"></p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Contact Person 1</p>
+                                <dl class="mt-2 space-y-1 text-sm">
+                                    <div class="flex justify-between gap-3"><dt class="text-slate-500">Name</dt><dd class="font-medium text-slate-900" x-text="viewDriver.contact1_name || '-'"></dd></div>
+                                    <div class="flex justify-between gap-3"><dt class="text-slate-500">Phone</dt><dd class="font-medium text-slate-900" x-text="viewDriver.contact1_phone || '-'"></dd></div>
+                                    <div class="pt-1"><dt class="text-slate-500">Address</dt><dd class="mt-1 text-slate-800" x-text="viewDriver.contact1_address || '-'"></dd></div>
+                                </dl>
+                            </div>
+                            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-600">Contact Person 2 (Optional)</p>
+                                <dl class="mt-2 space-y-1 text-sm">
+                                    <div class="flex justify-between gap-3"><dt class="text-slate-500">Name</dt><dd class="font-medium text-slate-900" x-text="viewDriver.contact2_name || '-'"></dd></div>
+                                    <div class="flex justify-between gap-3"><dt class="text-slate-500">Phone</dt><dd class="font-medium text-slate-900" x-text="viewDriver.contact2_phone || '-'"></dd></div>
+                                    <div class="pt-1"><dt class="text-slate-500">Address</dt><dd class="mt-1 text-slate-800" x-text="viewDriver.contact2_address || '-'"></dd></div>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -401,7 +547,7 @@
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Driver</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">License</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Mobile</th>
-                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Fleet Assignment</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Current Fleet Mapping</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
                             <th scope="col" class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Actions</th>
                         </tr>
@@ -432,6 +578,7 @@
                                         </svg>
                                         {{ $driver->mobile_number }}
                                     </div>
+                                    <div class="mt-1 text-xs text-slate-500">Primary Contact: {{ $driver->contact1_name ?: '-' }}</div>
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4">
                                     @if($driver->fleet)
@@ -463,6 +610,27 @@
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4 text-right">
                                     <div class="flex items-center justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity duration-200">
+                                        <button type="button"
+                                                class="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-slate-700 hover:text-white transition-all"
+                                                title="View Full Details"
+                                                @click="openViewModal({
+                                                    name: @js($driver->name),
+                                                    license_number: @js($driver->license_number),
+                                                    mobile_number: @js($driver->mobile_number),
+                                                    driver_address: @js($driver->driver_address),
+                                                    contact1_name: @js($driver->contact1_name),
+                                                    contact1_phone: @js($driver->contact1_phone),
+                                                    contact1_address: @js($driver->contact1_address),
+                                                    contact2_name: @js($driver->contact2_name),
+                                                    contact2_phone: @js($driver->contact2_phone),
+                                                    contact2_address: @js($driver->contact2_address),
+                                                    fleet_label: @js($driver->fleet ? ($driver->fleet->fleet_code.' - '.$driver->fleet->plate_number) : 'No fleet assigned')
+                                                })">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5s8.268 2.943 9.542 7c-1.274 4.057-5.065 7-9.542 7s-8.268-2.943-9.542-7z"></path>
+                                            </svg>
+                                        </button>
                                         @can('drivers.update')
                                             <button type="button"
                                                     class="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-[var(--nmis-primary)] hover:text-white transition-all"
@@ -472,8 +640,14 @@
                                                         name: @js($driver->name),
                                                         license_number: @js($driver->license_number),
                                                         mobile_number: @js($driver->mobile_number),
-                                                        is_active: '{{ $driver->is_active ? 1 : 0 }}',
-                                                        fleet_id: '{{ $driver->fleet?->encrypted_id ?? '' }}'
+                                                        driver_address: @js($driver->driver_address),
+                                                        contact1_name: @js($driver->contact1_name),
+                                                        contact1_phone: @js($driver->contact1_phone),
+                                                        contact1_address: @js($driver->contact1_address),
+                                                        contact2_name: @js($driver->contact2_name),
+                                                        contact2_phone: @js($driver->contact2_phone),
+                                                        contact2_address: @js($driver->contact2_address),
+                                                        is_active: '{{ $driver->is_active ? 1 : 0 }}'
                                                     })">
                                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -569,13 +743,33 @@
             return {
                 showCreateModal: false,
                 showEditModal: false,
+                showViewModal: false,
                 form: { 
                     id: '', 
                     name: '', 
                     license_number: '', 
                     mobile_number: '', 
-                    is_active: '1', 
-                    fleet_id: '' 
+                    driver_address: '',
+                    contact1_name: '',
+                    contact1_phone: '',
+                    contact1_address: '',
+                    contact2_name: '',
+                    contact2_phone: '',
+                    contact2_address: '',
+                    is_active: '1'
+                },
+                viewDriver: {
+                    name: '',
+                    license_number: '',
+                    mobile_number: '',
+                    driver_address: '',
+                    contact1_name: '',
+                    contact1_phone: '',
+                    contact1_address: '',
+                    contact2_name: '',
+                    contact2_phone: '',
+                    contact2_address: '',
+                    fleet_label: '',
                 },
                 
                 openCreateModal() {
@@ -585,6 +779,11 @@
                 openEditModal(payload) {
                     this.form = { ...payload };
                     this.showEditModal = true;
+                },
+
+                openViewModal(payload) {
+                    this.viewDriver = { ...payload };
+                    this.showViewModal = true;
                 }
             }
         }

@@ -16,6 +16,13 @@ class Driver extends Model
         'name',
         'license_number',
         'mobile_number',
+        'driver_address',
+        'contact1_name',
+        'contact1_phone',
+        'contact1_address',
+        'contact2_name',
+        'contact2_phone',
+        'contact2_address',
         'is_active',
         'created_by',
     ];

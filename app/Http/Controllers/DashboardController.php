@@ -75,7 +75,7 @@ class DashboardController extends Controller
                 'fuel_spend' => in_array($preset, ['admin', 'fuel', 'approvals'], true),
                 'approval_pipeline' => in_array($preset, ['admin', 'fuel', 'approvals'], true),
             ],
-            'notifications' => $user->notifications()->latest()->take(10)->get(),
+            'notifications' => $user->notifications()->latest()->take(5)->get(),
         ]);
     }
 

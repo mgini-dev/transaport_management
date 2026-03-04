@@ -64,7 +64,7 @@
                             </div>
                             <div>
                                 <h3 class="text-lg font-semibold text-slate-900">Add Fleet Assignment Leg</h3>
-                                <p class="text-xs text-slate-500">Assign a fleet and driver to this order leg</p>
+                                <p class="text-xs text-slate-500">Assign a fleet and driver. Route is taken from the order and cannot be edited here.</p>
                             </div>
                         </div>
                         <button @click="openLegModal = false" class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-500 transition-colors">
@@ -86,7 +86,7 @@
                                 <select name="fleet_id" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all" required>
                                     <option value="">Choose available fleet...</option>
                                     @foreach ($fleets as $fleet)
-                                        <option value="{{ $fleet->encrypted_id }}">{{ $fleet->fleet_code }} - {{ $fleet->plate_number }} ({{ $fleet->type ?? 'N/A' }})</option>
+                                        <option value="{{ $fleet->encrypted_id }}">{{ $fleet->fleet_code }} - {{ $fleet->plate_number }} | Trailer: {{ $fleet->trailer_number ?? 'N/A' }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -94,38 +94,25 @@
                             <!-- Driver Selection -->
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1">
-                                    Select Driver (Optional)
+                                    Select Driver <span class="text-rose-500">*</span>
                                 </label>
-                                <select name="driver_id" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
-                                    <option value="">Choose driver...</option>
+                                <select name="driver_id" id="driver-select" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all" required>
+                                    <option value="">Choose available driver...</option>
                                     @foreach ($drivers as $driver)
-                                        <option value="{{ $driver->encrypted_id }}">{{ $driver->name }} - {{ $driver->license_number }}</option>
+                                        <option value="{{ $driver->encrypted_id }}">
+                                            {{ $driver->name }} - {{ $driver->license_number }}
+                                        </option>
                                     @endforeach
                                 </select>
                             </div>
 
-                            <!-- Origin Address -->
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">
-                                    Origin Address <span class="text-rose-500">*</span>
-                                </label>
-                                <textarea name="origin_address" 
-                                          required 
-                                          rows="3"
-                                          class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all resize-none"
-                                          placeholder="Full origin address"></textarea>
-                            </div>
-
-                            <!-- Destination Address -->
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">
-                                    Destination Address <span class="text-rose-500">*</span>
-                                </label>
-                                <textarea name="destination_address" 
-                                          required 
-                                          rows="3"
-                                          class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all resize-none"
-                                          placeholder="Full destination address"></textarea>
+                            <div class="md:col-span-2 rounded-xl border border-slate-200/70 bg-slate-50 px-4 py-3">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Order Route</p>
+                                <p class="mt-1 text-sm text-slate-800">
+                                    <span class="font-semibold">{{ $order->origin_address }}</span>
+                                    <span class="mx-1 text-slate-400">to</span>
+                                    <span class="font-semibold">{{ $order->destination_address }}</span>
+                                </p>
                             </div>
 
                             <!-- Distance -->
@@ -171,6 +158,29 @@
                         </svg>
                     </div>
                     <p class="text-sm font-medium text-emerald-800">{{ session('success') }}</p>
+                </div>
+            </div>
+        @endif
+
+        @if($canViewDistance)
+            <div class="rounded-xl border border-slate-200/60 bg-white p-5 shadow-sm">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-500">Order Distance</p>
+                        <p class="mt-1 text-xl font-bold text-slate-900">
+                            {{ $order->distance_km ? number_format((float) $order->distance_km, 2).' km' : 'Not calculated' }}
+                        </p>
+                    </div>
+                    <form method="POST" action="{{ route('orders.distance.calculate', $order->encrypted_id) }}">
+                        @csrf
+                        <button type="submit"
+                                class="inline-flex items-center gap-2 rounded-lg bg-[var(--nmis-primary)] px-4 py-2 text-xs font-semibold text-white hover:bg-[var(--nmis-secondary)] transition-all">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A2 2 0 013 15.382V5.618a2 2 0 011.053-1.764L9 2m0 18l5.447-2.724A2 2 0 0016 15.382V5.618a2 2 0 00-1.053-1.764L9 2m0 18V2"></path>
+                            </svg>
+                            Calculate Distance
+                        </button>
+                    </form>
                 </div>
             </div>
         @endif
@@ -258,10 +268,11 @@
                             <tr>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Sequence</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Fleet</th>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Trailer</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Driver</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Route</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
-                                <th scope="col" class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Action</th>
+                                <th scope="col" class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Completion</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
@@ -277,6 +288,9 @@
                                     <td class="whitespace-nowrap px-6 py-4">
                                         <div class="text-sm font-medium text-slate-900">{{ $leg->fleet?->fleet_code ?? 'N/A' }}</div>
                                         <div class="text-xs text-slate-500">{{ $leg->fleet?->plate_number ?? 'No fleet' }}</div>
+                                    </td>
+                                    <td class="whitespace-nowrap px-6 py-4">
+                                        <div class="text-sm text-slate-900">{{ $leg->trailer_number ?? $leg->fleet?->trailer_number ?? '-' }}</div>
                                     </td>
                                     <td class="whitespace-nowrap px-6 py-4">
                                         <div class="text-sm text-slate-900">{{ $leg->driver?->name ?? '-' }}</div>
@@ -308,24 +322,12 @@
                                     </td>
                                     <td class="whitespace-nowrap px-6 py-4 text-right">
                                         @if ($leg->status === 'active')
-                                            <form method="POST" action="{{ route('orders.legs.complete', $leg->encrypted_id) }}" 
-                                                  class="inline"
-                                                  onsubmit="return confirm('Are you sure you want to mark this leg as complete?')">
-                                                @csrf
-                                                <button type="submit" 
-                                                        class="inline-flex items-center gap-1 rounded-lg bg-emerald-100 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-200 transition-all">
-                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                                    </svg>
-                                                    Mark Complete
-                                                </button>
-                                            </form>
+                                            <span class="inline-flex items-center gap-1 rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-700">
+                                                Auto-completes when order is completed
+                                            </span>
                                         @else
                                             <span class="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600">
-                                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                                </svg>
-                                                Completed
+                                                Completed automatically
                                             </span>
                                         @endif
                                     </td>
@@ -420,4 +422,5 @@
             background: #94a3b8;
         }
     </style>
+
 </x-app-layout>

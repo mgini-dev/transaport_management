@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\LogController;
 use App\Http\Controllers\Admin\RolePermissionController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DriverController;
@@ -25,6 +26,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/notifications/export/csv', [NotificationController::class, 'exportCsv'])->name('notifications.export.csv');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read_all');
     Route::post('/notifications/{notificationId}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::delete('/notifications/{notificationId}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
+    Route::post('/notifications/delete-many', [NotificationController::class, 'destroyMany'])->name('notifications.destroy_many');
 
     Route::middleware('permission:customers.view|customers.create|customers.edit|customers.delete')->group(function () {
         Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
@@ -46,14 +49,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
     Route::post('/orders', [OrderController::class, 'store'])->middleware('permission:orders.create')->name('orders.store');
     Route::post('/orders/{orderId}/status', [OrderController::class, 'updateStatus'])->middleware('permission:orders.status.update')->name('orders.status.update');
+    Route::post('/orders/{orderId}/distance/calculate', [OrderController::class, 'calculateDistance'])->middleware('permission:orders.view_distance')->name('orders.distance.calculate');
+    Route::get('/orders/{orderId}/delivery-note/pdf', [OrderController::class, 'deliveryNotePdf'])->name('orders.delivery_note.pdf');
+    Route::post('/orders/{orderId}/complete-transport', [OrderController::class, 'completeTransportation'])->name('orders.complete_transport');
+    Route::get('/orders/{orderId}/completion-document/preview', [OrderController::class, 'previewCompletionDocument'])->name('orders.completion_document.preview');
+    Route::get('/orders/{orderId}/completion-document', [OrderController::class, 'downloadCompletionDocument'])->name('orders.completion_document.download');
     Route::get('/orders/{orderId}/legs', [OrderLegController::class, 'index'])->middleware('permission:fleet.assign')->name('orders.legs.index');
     Route::post('/orders/{orderId}/legs', [OrderLegController::class, 'store'])->middleware('permission:fleet.assign')->name('orders.legs.store');
     Route::post('/order-legs/{legId}/complete', [OrderLegController::class, 'complete'])->middleware('permission:fleet.assign')->name('orders.legs.complete');
 
     Route::middleware('permission:fleet.view|fleet.create')->group(function () {
         Route::get('/fleet', [FleetController::class, 'index'])->name('fleet.index');
+        Route::get('/fleet/{fleetId}/edit', [FleetController::class, 'edit'])->name('fleet.edit');
     });
     Route::post('/fleet', [FleetController::class, 'store'])->middleware('permission:fleet.create')->name('fleet.store');
+    Route::put('/fleet/{fleetId}', [FleetController::class, 'update'])->middleware('permission:fleet.create')->name('fleet.update');
     Route::delete('/fleet/{fleetId}', [FleetController::class, 'destroy'])->middleware('permission:fleet.delete')->name('fleet.destroy');
 
     Route::middleware('permission:drivers.view|drivers.create')->group(function () {
@@ -66,7 +76,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('permission:fuel.view|fuel.create')->group(function () {
         Route::get('/fuel', [FuelRequisitionController::class, 'index'])->name('fuel.index');
     });
+    Route::get('/fuel/{requisitionId}', [FuelRequisitionController::class, 'show'])
+        ->middleware('permission:fuel.view|fuel.approve.supervisor|fuel.approve.accounting')
+        ->name('fuel.show');
     Route::post('/fuel', [FuelRequisitionController::class, 'store'])->middleware('permission:fuel.create')->name('fuel.store');
+    Route::post('/fuel/distance/estimate', [FuelRequisitionController::class, 'estimateDistance'])->middleware('permission:fuel.create')->name('fuel.distance.estimate');
+    Route::post('/fuel/balance', [FuelRequisitionController::class, 'storeBalance'])->middleware('permission:fuel.create')->name('fuel.balance.store');
     Route::post('/fuel/{requisitionId}/supervisor-decision', [FuelRequisitionController::class, 'supervisorDecision'])->middleware('permission:fuel.approve.supervisor')->name('fuel.supervisor.decision');
     Route::post('/fuel/{requisitionId}/accountant-decision', [FuelRequisitionController::class, 'accountantDecision'])->middleware('permission:fuel.approve.accounting')->name('fuel.accountant.decision');
 
@@ -88,6 +103,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('admin')->name('admin.')->middleware('permission:admin.logs.view')->group(function () {
         Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
         Route::get('/logs/export/csv', [LogController::class, 'exportCsv'])->name('logs.export.csv');
+    });
+
+    Route::prefix('admin')->name('admin.')->middleware('permission:admin.dashboard.view_all')->group(function () {
+        Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/export/excel', [ReportController::class, 'exportExcel'])->name('reports.export.excel');
+        Route::get('/reports/export/csv', [ReportController::class, 'exportCsv'])->name('reports.export.csv');
+        Route::get('/reports/export/pdf', [ReportController::class, 'exportPdf'])->name('reports.export.pdf');
     });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

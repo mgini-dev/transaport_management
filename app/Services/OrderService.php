@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\FuelBalance;
 use App\Models\Order;
 use App\Models\OrderLeg;
 use App\Models\OrderStatusHistory;
@@ -70,7 +71,9 @@ class OrderService
                 title: 'New order requires processing',
                 message: "Order {$order->order_number} was created and is ready for processing.",
                 type: 'order.created',
-                meta: ['order_id' => $order->id, 'trip_id' => $order->trip_id]
+                meta: ['order_id' => $order->id, 'trip_id' => $order->trip_id],
+                filter: fn (User $user) => $user->can('orders.view_all') || $order->created_by === $user->id,
+                excludeUserId: $actor->id
             );
 
             return $order;
@@ -120,6 +123,81 @@ class OrderService
         });
 
         return $order->refresh();
+    }
+
+    public function calculateAndStoreDistance(Order $order): Order
+    {
+        $distanceKm = $this->distanceService->calculateKm(
+            (string) $order->origin_address,
+            (string) $order->destination_address
+        );
+
+        if ($distanceKm === null) {
+            throw new RuntimeException('Distance could not be calculated right now. Please try again shortly.');
+        }
+
+        $order->update([
+            'distance_km' => $distanceKm,
+            'estimated_fuel_litres' => round($distanceKm * 0.5, 2),
+        ]);
+
+        return $order->refresh();
+    }
+
+    /**
+     * @param  array{
+     *   fleet_balances: array<int, array{fleet_id:int,remaining_litres:float}>,
+     *   completion_comment:?string,
+     *   completion_document_path:string
+     * }  $payload
+     */
+    public function completeTransportation(Order $order, array $payload, User $actor): Order
+    {
+        if ($order->status !== 'transportation') {
+            throw new RuntimeException('Order must be in transportation before completion.');
+        }
+
+        $assignedFleetIds = OrderLeg::query()
+            ->where('order_id', $order->id)
+            ->pluck('fleet_id')
+            ->filter()
+            ->unique()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+        $submittedFleetIds = collect($payload['fleet_balances'] ?? [])
+            ->pluck('fleet_id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        sort($assignedFleetIds);
+        sort($submittedFleetIds);
+
+        if ($assignedFleetIds !== $submittedFleetIds) {
+            throw new RuntimeException('Please record fuel balance for each assigned fleet before completing the order.');
+        }
+
+        return DB::transaction(function () use ($order, $payload, $actor) {
+            foreach ($payload['fleet_balances'] as $balanceRow) {
+                FuelBalance::query()->create([
+                    'order_id' => $order->id,
+                    'fleet_id' => (int) $balanceRow['fleet_id'],
+                    'remaining_litres' => (float) $balanceRow['remaining_litres'],
+                    'remarks' => $payload['completion_comment'] ?? null,
+                    'updated_by' => $actor->id,
+                ]);
+            }
+
+            $order->update([
+                'completion_document_path' => $payload['completion_document_path'],
+                'completion_comment' => $payload['completion_comment'] ?? null,
+                'completed_by' => $actor->id,
+            ]);
+
+            return $this->updateStatus($order, 'completed', $actor, $payload['completion_comment'] ?? 'Order completed with signed delivery note and fuel balance.');
+        });
     }
 
     private function generateOrderNumber(): string

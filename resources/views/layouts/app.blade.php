@@ -78,8 +78,8 @@
             @include('layouts.partials.navigation')
 
             <!-- Page Content -->
-            <main class="py-6 px-4 sm:px-6 lg:px-8">
-                <div class="max-w-7xl mx-auto">
+            <main class="py-6 px-3 sm:px-5 lg:px-6 xl:px-8">
+                <div class="mx-auto w-full max-w-[1800px]">
                     <!-- Header Slot -->
                     @isset($header)
                         <div class="mb-8">

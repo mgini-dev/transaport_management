@@ -30,6 +30,11 @@ class Order extends Model
         'remarks',
         'created_by',
         'completed_at',
+        'completion_document_path',
+        'delivery_note_issued_at',
+        'delivery_note_issued_by',
+        'completion_comment',
+        'completed_by',
     ];
 
     protected function casts(): array
@@ -38,6 +43,7 @@ class Order extends Model
             'expected_loading_date' => 'date',
             'expected_leaving_date' => 'date',
             'completed_at' => 'datetime',
+            'delivery_note_issued_at' => 'datetime',
         ];
     }
 
@@ -56,6 +62,16 @@ class Order extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function completer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'completed_by');
+    }
+
+    public function deliveryNoteIssuer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'delivery_note_issued_by');
+    }
+
     public function statusHistory(): HasMany
     {
         return $this->hasMany(OrderStatusHistory::class);
@@ -69,5 +85,10 @@ class Order extends Model
     public function fuelRequisitions(): HasMany
     {
         return $this->hasMany(FuelRequisition::class);
+    }
+
+    public function fuelBalances(): HasMany
+    {
+        return $this->hasMany(FuelBalance::class);
     }
 }

@@ -23,7 +23,7 @@
 
     <div class="space-y-6">
         <!-- Success Message -->
-        @if(session('success'))
+        @if(session('success') || session('status'))
             <div class="animate-slide-down rounded-xl border border-emerald-200 bg-emerald-50/90 backdrop-blur-sm px-5 py-4">
                 <div class="flex items-center gap-3">
                     <div class="rounded-full bg-emerald-100 p-1">
@@ -31,7 +31,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                         </svg>
                     </div>
-                    <p class="text-sm font-medium text-emerald-800">{{ session('success') }}</p>
+                    <p class="text-sm font-medium text-emerald-800">{{ session('success') ?? session('status') }}</p>
                 </div>
             </div>
         @endif
@@ -176,13 +176,17 @@
                 <div class="w-full max-w-md rounded-2xl border border-slate-200/60 bg-white shadow-2xl">
                     <div class="border-b border-slate-200/70 px-6 py-4">
                         <h3 class="text-lg font-semibold text-slate-900">Close Trip</h3>
-                        <p class="mt-1 text-sm text-slate-500">This action cannot be undone.</p>
+                        <p class="mt-1 text-sm text-slate-500">By default, all orders must be completed before closing.</p>
                     </div>
                     <div class="px-6 py-5">
                         <p class="text-sm text-slate-700">
                             Are you sure you want to close
                             <span id="close-trip-number" class="font-semibold text-slate-900"></span>?
                         </p>
+                        <label class="mt-4 flex items-start gap-2 text-sm text-slate-600">
+                            <input type="checkbox" id="force-close-checkbox" name="force_close" value="1" class="mt-0.5 rounded border-slate-300 text-rose-600 focus:ring-rose-200">
+                            <span>Force close even if some orders are not completed.</span>
+                        </label>
                     </div>
                     <div class="flex items-center justify-end gap-3 border-t border-slate-200/70 px-6 py-4">
                         <button type="button"
@@ -192,6 +196,7 @@
                         </button>
                         <form id="close-trip-form" method="POST">
                             @csrf
+                            <input type="hidden" name="force_close" id="force-close-input" value="0">
                             <button type="submit"
                                     class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 transition-all">
                                 Yes, Close Trip
@@ -201,6 +206,65 @@
                 </div>
             </div>
         </div>
+
+        @if(session('trip_close_warning'))
+            @php($warning = session('trip_close_warning'))
+            <div id="trip-close-warning-modal" class="fixed inset-0 z-50">
+                <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"></div>
+                <div class="relative flex min-h-full items-center justify-center p-4">
+                    <div class="w-full max-w-lg rounded-2xl border border-amber-200 bg-white shadow-2xl">
+                        <div class="border-b border-amber-100 px-6 py-4">
+                            <h3 class="text-lg font-semibold text-amber-800">Cannot Close Trip Yet</h3>
+                            <p class="mt-1 text-sm text-slate-600">
+                                Trip <span class="font-semibold">{{ $warning['trip_number'] }}</span> still has
+                                <span class="font-semibold text-amber-700">{{ $warning['total_incomplete'] }}</span> incomplete orders.
+                            </p>
+                        </div>
+                        <form method="POST" action="{{ $warning['close_url'] }}">
+                            @csrf
+                            <input type="hidden" name="force_close" value="1">
+                            <div class="space-y-3 px-6 py-4 text-sm">
+                            <p class="font-semibold text-slate-700">Incomplete Order Statuses:</p>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach(($warning['status_breakdown'] ?? []) as $status => $count)
+                                    <span class="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 border border-amber-200">
+                                        {{ ucfirst($status) }}: {{ $count }}
+                                    </span>
+                                @endforeach
+                            </div>
+                            @if(!empty($warning['incomplete_orders']))
+                                <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-3">
+                                    <p class="text-sm font-semibold text-slate-700">Provide Explanation Per Incomplete Order</p>
+                                    @foreach($warning['incomplete_orders'] as $orderItem)
+                                        <div>
+                                            <label class="mb-1 block text-xs font-semibold text-slate-600">
+                                                {{ $orderItem['order_number'] }} ({{ ucfirst($orderItem['status']) }})
+                                            </label>
+                                            <textarea name="explanations[{{ $orderItem['id'] }}]"
+                                                      rows="2"
+                                                      required
+                                                      class="w-full rounded-lg border-slate-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:ring-amber-200"
+                                                      placeholder="Why this order is still incomplete at trip closing...">{{ old('explanations.'.$orderItem['id']) }}</textarea>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+                            </div>
+                            <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 px-6 py-4">
+                                <a href="{{ $warning['trip_show_url'] }}"
+                                   class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                                    Review Orders
+                                </a>
+                                <button type="submit"
+                                        class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700">
+                                    Force Close Anyway
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         <!-- Pagination -->
         <div class="flex items-center justify-between">
@@ -395,10 +459,14 @@
             const modal = document.getElementById('close-trip-modal');
             const form = document.getElementById('close-trip-form');
             const numberLabel = document.getElementById('close-trip-number');
+            const forceCheckbox = document.getElementById('force-close-checkbox');
+            const forceInput = document.getElementById('force-close-input');
             if (!modal || !form || !numberLabel) return;
 
             form.action = closeUrl;
             numberLabel.textContent = tripNumber;
+            if (forceCheckbox) forceCheckbox.checked = false;
+            if (forceInput) forceInput.value = '0';
             modal.classList.remove('hidden');
         }
 
@@ -411,6 +479,11 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             loadTrips();
+
+            document.getElementById('force-close-checkbox')?.addEventListener('change', function () {
+                const hidden = document.getElementById('force-close-input');
+                if (hidden) hidden.value = this.checked ? '1' : '0';
+            });
             
             document.getElementById('trip-filter-btn')?.addEventListener('click', () => loadTrips(true));
             

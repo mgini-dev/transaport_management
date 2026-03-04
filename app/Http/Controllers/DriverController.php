@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Driver;
-use App\Models\Fleet;
 use App\Models\OrderLeg;
 use App\Repositories\DriverRepository;
 use App\Services\AuditLogService;
@@ -43,6 +42,13 @@ class DriverController extends Controller
                         'name' => $driver->name,
                         'license_number' => $driver->license_number,
                         'mobile_number' => $driver->mobile_number,
+                        'driver_address' => $driver->driver_address,
+                        'contact1_name' => $driver->contact1_name,
+                        'contact1_phone' => $driver->contact1_phone,
+                        'contact1_address' => $driver->contact1_address,
+                        'contact2_name' => $driver->contact2_name,
+                        'contact2_phone' => $driver->contact2_phone,
+                        'contact2_address' => $driver->contact2_address,
                         'fleet' => $driver->fleet?->fleet_code.' - '.$driver->fleet?->plate_number,
                         'is_active' => $driver->is_active,
                     ];
@@ -67,14 +73,17 @@ class DriverController extends Controller
                 $query->where(function ($inner) use ($search) {
                     $inner->where('name', 'like', '%'.$search.'%')
                         ->orWhere('license_number', 'like', '%'.$search.'%')
-                        ->orWhere('mobile_number', 'like', '%'.$search.'%');
+                        ->orWhere('mobile_number', 'like', '%'.$search.'%')
+                        ->orWhere('contact1_name', 'like', '%'.$search.'%')
+                        ->orWhere('contact1_phone', 'like', '%'.$search.'%')
+                        ->orWhere('contact2_name', 'like', '%'.$search.'%')
+                        ->orWhere('contact2_phone', 'like', '%'.$search.'%');
                 });
             })
             ->when($active !== '', fn ($query) => $query->where('is_active', (bool) $active))
             ->latest();
 
         return view('drivers.index', [
-            'fleets' => Fleet::query()->orderBy('fleet_code')->get(),
             'drivers' => $listQuery->paginate(20)->withQueryString(),
             'driverStats' => [
                 'total' => (clone $statsQuery)->count(),
@@ -90,20 +99,31 @@ class DriverController extends Controller
         $this->authorize('create', Driver::class);
 
         $data = $request->validate([
-            'fleet_id' => ['nullable', 'string'],
             'name' => ['required', 'string', 'max:255'],
             'license_number' => ['required', 'string', 'max:255', 'unique:drivers,license_number'],
             'mobile_number' => ['required', 'string', 'max:50'],
+            'driver_address' => ['required', 'string'],
+            'contact1_name' => ['required', 'string', 'max:255'],
+            'contact1_phone' => ['required', 'string', 'max:50'],
+            'contact1_address' => ['required', 'string'],
+            'contact2_name' => ['nullable', 'string', 'max:255'],
+            'contact2_phone' => ['nullable', 'string', 'max:50'],
+            'contact2_address' => ['nullable', 'string'],
             'is_active' => ['required', 'boolean'],
         ]);
 
-        $fleetId = filled($data['fleet_id'] ?? null) ? EncryptedId::decode($data['fleet_id']) : null;
-
         $driver = Driver::query()->create([
-            'fleet_id' => $fleetId,
+            'fleet_id' => null,
             'name' => $data['name'],
             'license_number' => $data['license_number'],
             'mobile_number' => $data['mobile_number'],
+            'driver_address' => $data['driver_address'],
+            'contact1_name' => $data['contact1_name'],
+            'contact1_phone' => $data['contact1_phone'],
+            'contact1_address' => $data['contact1_address'],
+            'contact2_name' => $data['contact2_name'] ?? null,
+            'contact2_phone' => $data['contact2_phone'] ?? null,
+            'contact2_address' => $data['contact2_address'] ?? null,
             'is_active' => (bool) $data['is_active'],
             'created_by' => $request->user()->id,
         ]);
@@ -126,20 +146,30 @@ class DriverController extends Controller
         $this->authorize('update', $driver);
 
         $data = $request->validate([
-            'fleet_id' => ['nullable', 'string'],
             'name' => ['required', 'string', 'max:255'],
             'license_number' => ['required', 'string', 'max:255', 'unique:drivers,license_number,'.$driver->id],
             'mobile_number' => ['required', 'string', 'max:50'],
+            'driver_address' => ['required', 'string'],
+            'contact1_name' => ['required', 'string', 'max:255'],
+            'contact1_phone' => ['required', 'string', 'max:50'],
+            'contact1_address' => ['required', 'string'],
+            'contact2_name' => ['nullable', 'string', 'max:255'],
+            'contact2_phone' => ['nullable', 'string', 'max:50'],
+            'contact2_address' => ['nullable', 'string'],
             'is_active' => ['required', 'boolean'],
         ]);
 
-        $fleetId = filled($data['fleet_id'] ?? null) ? EncryptedId::decode($data['fleet_id']) : null;
-
         $driver->update([
-            'fleet_id' => $fleetId,
             'name' => $data['name'],
             'license_number' => $data['license_number'],
             'mobile_number' => $data['mobile_number'],
+            'driver_address' => $data['driver_address'],
+            'contact1_name' => $data['contact1_name'],
+            'contact1_phone' => $data['contact1_phone'],
+            'contact1_address' => $data['contact1_address'],
+            'contact2_name' => $data['contact2_name'] ?? null,
+            'contact2_phone' => $data['contact2_phone'] ?? null,
+            'contact2_address' => $data['contact2_address'] ?? null,
             'is_active' => (bool) $data['is_active'],
         ]);
 

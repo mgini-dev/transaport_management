@@ -13,15 +13,23 @@ class FuelRequisition extends Model
 
     protected $fillable = [
         'order_id',
+        'requisition_type',
         'fleet_id',
         'requested_by',
         'fuel_station',
+        'base_distance_km',
+        'additional_distance_km',
+        'total_distance_km',
+        'estimated_fuel_litres',
+        'available_balance_litres',
         'additional_litres',
         'fuel_price',
         'discount',
         'total_amount',
         'payment_channel',
         'payment_account',
+        'origin_address',
+        'destination_address',
         'status',
         'supervisor_id',
         'supervisor_remarks',
@@ -34,6 +42,15 @@ class FuelRequisition extends Model
     protected function casts(): array
     {
         return [
+            'base_distance_km' => 'decimal:2',
+            'additional_distance_km' => 'decimal:2',
+            'total_distance_km' => 'decimal:2',
+            'estimated_fuel_litres' => 'decimal:2',
+            'available_balance_litres' => 'decimal:2',
+            'additional_litres' => 'decimal:2',
+            'fuel_price' => 'decimal:2',
+            'discount' => 'decimal:2',
+            'total_amount' => 'decimal:2',
             'supervisor_reviewed_at' => 'datetime',
             'accountant_reviewed_at' => 'datetime',
         ];

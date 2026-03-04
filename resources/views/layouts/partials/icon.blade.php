@@ -33,4 +33,7 @@
     @case('lock')
         <svg class="{{ $size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V8a4 4 0 1 1 8 0v3"/></svg>
         @break
+    @case('chart')
+        <svg class="{{ $size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg>
+        @break
 @endswitch

@@ -15,6 +15,7 @@ class OrderLeg extends Model
         'order_id',
         'fleet_id',
         'driver_id',
+        'trailer_number',
         'leg_sequence',
         'origin_address',
         'destination_address',

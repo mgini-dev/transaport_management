@@ -351,7 +351,7 @@
             button.disabled = true;
 
             try {
-                const response = await fetch('{{ route('notifications.index') }}?skip=0&take=10', {
+                const response = await fetch('{{ route('notifications.index') }}?skip=0&take=5', {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' },
                 });
                 const payload = await response.json();

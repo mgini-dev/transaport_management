@@ -103,4 +103,37 @@ class NotificationController extends Controller
             'unread_count' => $request->user()->unreadNotifications()->count(),
         ]);
     }
+
+    public function destroy(Request $request, string $notificationId): JsonResponse
+    {
+        $notification = $request->user()
+            ->notifications()
+            ->findOrFail($notificationId);
+
+        $notification->delete();
+
+        return response()->json([
+            'message' => 'Notification deleted successfully.',
+            'unread_count' => $request->user()->unreadNotifications()->count(),
+        ]);
+    }
+
+    public function destroyMany(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['required', 'string'],
+        ]);
+
+        $deleted = $request->user()
+            ->notifications()
+            ->whereIn('id', $data['ids'])
+            ->delete();
+
+        return response()->json([
+            'message' => $deleted.' notification(s) deleted successfully.',
+            'deleted' => $deleted,
+            'unread_count' => $request->user()->unreadNotifications()->count(),
+        ]);
+    }
 }

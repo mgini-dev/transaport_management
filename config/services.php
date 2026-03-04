@@ -37,6 +37,9 @@ return [
 
     'distancematrix' => [
         'key' => env('DISTANCE_MATRIX_API_KEY'),
+        'user_agent' => env('DISTANCE_USER_AGENT', env('APP_NAME', 'NMIS').'/1.0'),
+        'nominatim_url' => env('DISTANCE_NOMINATIM_URL', 'https://nominatim.openstreetmap.org'),
+        'osrm_url' => env('DISTANCE_OSRM_URL', 'https://router.project-osrm.org'),
     ],
 
 ];

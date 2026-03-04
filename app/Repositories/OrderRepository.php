@@ -37,20 +37,28 @@ class OrderRepository
     }
 
     /**
-     * @return array{total: int, processing: int, completed: int, total_weight: float}
+     * @return array{total: int, created: int, processing: int, assigned: int, transportation: int, incomplete: int, completed: int, total_weight: float}
      */
     public function statsForUser(User $user): array
     {
         $query = $this->scopedQuery($user);
 
         $total = (clone $query)->count();
-        $processing = (clone $query)->whereIn('status', ['processing', 'assigned'])->count();
+        $created = (clone $query)->where('status', 'created')->count();
+        $processing = (clone $query)->where('status', 'processing')->count();
+        $assigned = (clone $query)->where('status', 'assigned')->count();
+        $transportation = (clone $query)->where('status', 'transportation')->count();
+        $incomplete = (clone $query)->where('status', 'incomplete')->count();
         $completed = (clone $query)->where('status', 'completed')->count();
         $totalWeight = (float) ((clone $query)->sum('weight_tons') ?? 0);
 
         return [
             'total' => $total,
+            'created' => $created,
             'processing' => $processing,
+            'assigned' => $assigned,
+            'transportation' => $transportation,
+            'incomplete' => $incomplete,
             'completed' => $completed,
             'total_weight' => round($totalWeight, 2),
         ];

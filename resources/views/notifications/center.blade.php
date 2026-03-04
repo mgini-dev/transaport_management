@@ -48,16 +48,24 @@
         </div>
 
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <form method="POST" action="{{ route('notifications.read_all') }}" class="inline">
-                @csrf
-                <button type="submit"
-                        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--nmis-primary)] to-[var(--nmis-secondary)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--nmis-primary)]/20 hover:shadow-xl hover:scale-105 transition-all duration-300 group">
-                    <svg class="h-4 w-4 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    Mark All as Read
+            <div class="flex items-center gap-2">
+                <form method="POST" action="{{ route('notifications.read_all') }}" class="inline">
+                    @csrf
+                    <button type="submit"
+                            class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--nmis-primary)] to-[var(--nmis-secondary)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--nmis-primary)]/20 hover:shadow-xl hover:scale-105 transition-all duration-300 group">
+                        <svg class="h-4 w-4 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Mark All as Read
+                    </button>
+                </form>
+                <button type="button"
+                        id="delete-selected-btn"
+                        class="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled>
+                    Delete Selected (<span id="selected-count">0</span>)
                 </button>
-            </form>
+            </div>
 
             <div class="relative flex-1 max-w-md">
                 <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
@@ -77,6 +85,9 @@
                 <table class="min-w-full divide-y divide-slate-200">
                     <thead class="bg-gradient-to-r from-slate-50 to-white">
                         <tr>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                <input id="select-all-notifications" type="checkbox" class="rounded border-slate-300 text-[var(--nmis-primary)] focus:ring-[var(--nmis-primary)]/20">
+                            </th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Notification</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Type</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Date & Time</th>
@@ -95,6 +106,23 @@
         </div>
     </div>
 
+    <div id="delete-confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            <div class="border-b border-slate-200 px-6 py-4">
+                <h3 class="text-lg font-semibold text-slate-900">Confirm Delete</h3>
+                <p class="mt-1 text-sm text-slate-500" id="delete-confirm-message">Are you sure?</p>
+            </div>
+            <div class="flex items-center justify-end gap-3 px-6 py-4">
+                <button type="button" id="delete-cancel-btn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                    Cancel
+                </button>
+                <button type="button" id="delete-confirm-btn" class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
     <style>
         .gradient-text {
             background: linear-gradient(135deg, var(--nmis-primary), var(--nmis-secondary));
@@ -109,6 +137,8 @@
         let currentPage = 0;
         const pageSize = 10;
         let latestMeta = { total: 0, unread: 0, read: 0 };
+        let selectedNotificationIds = new Set();
+        let pendingDeleteIds = [];
 
         function escapeHtml(value) {
             return String(value || '')
@@ -151,6 +181,70 @@
             await loadNotifications(false);
         }
 
+        async function deleteNotification(notificationId) {
+            const response = await fetch(`/notifications/${notificationId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+
+            if (!response.ok) return;
+            const payload = await response.json();
+            if (typeof window.updateGlobalNotificationBadge === 'function') {
+                window.updateGlobalNotificationBadge(payload.unread_count || 0);
+            }
+            selectedNotificationIds.delete(notificationId);
+            updateBulkDeleteState();
+            await loadNotifications(false);
+        }
+
+        async function deleteManyNotifications(ids) {
+            const response = await fetch(`{{ route('notifications.destroy_many') }}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({ ids }),
+            });
+
+            if (!response.ok) return;
+            const payload = await response.json();
+            if (typeof window.updateGlobalNotificationBadge === 'function') {
+                window.updateGlobalNotificationBadge(payload.unread_count || 0);
+            }
+            ids.forEach((id) => selectedNotificationIds.delete(id));
+            updateBulkDeleteState();
+            await loadNotifications(false);
+        }
+
+        function openDeleteModal(ids) {
+            pendingDeleteIds = ids;
+            const message = ids.length === 1
+                ? 'Delete this notification permanently?'
+                : `Delete ${ids.length} selected notifications permanently?`;
+            document.getElementById('delete-confirm-message').textContent = message;
+            document.getElementById('delete-confirm-modal').classList.remove('hidden');
+            document.getElementById('delete-confirm-modal').classList.add('flex');
+        }
+
+        function closeDeleteModal() {
+            pendingDeleteIds = [];
+            document.getElementById('delete-confirm-modal').classList.add('hidden');
+            document.getElementById('delete-confirm-modal').classList.remove('flex');
+        }
+
+        function updateBulkDeleteState() {
+            const selected = selectedNotificationIds.size;
+            const btn = document.getElementById('delete-selected-btn');
+            const counter = document.getElementById('selected-count');
+            if (counter) counter.textContent = String(selected);
+            if (btn) btn.disabled = selected === 0;
+        }
+
         function renderNotifications(items) {
             const table = document.getElementById('notification-table');
             table.innerHTML = '';
@@ -158,9 +252,10 @@
             if (!items.length) {
                 table.innerHTML = `
                     <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-sm text-slate-500">No notifications found.</td>
+                        <td colspan="6" class="px-6 py-12 text-center text-sm text-slate-500">No notifications found.</td>
                     </tr>
                 `;
+                document.getElementById('select-all-notifications').checked = false;
                 return;
             }
 
@@ -175,6 +270,12 @@
 
                 table.insertAdjacentHTML('beforeend', `
                     <tr class="hover:bg-slate-50/80 transition-colors ${isUnread ? 'bg-[var(--nmis-primary)]/[0.02]' : ''}">
+                        <td class="whitespace-nowrap px-6 py-4">
+                            <input type="checkbox"
+                                   class="notification-select rounded border-slate-300 text-[var(--nmis-primary)] focus:ring-[var(--nmis-primary)]/20"
+                                   data-select-notification="${item.id}"
+                                   ${selectedNotificationIds.has(item.id) ? 'checked' : ''}>
+                        </td>
                         <td class="px-6 py-4">
                             <p class="text-sm font-medium text-slate-900">${title}</p>
                             <p class="mt-1 text-sm text-slate-600">${message}</p>
@@ -191,10 +292,17 @@
                             }
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-right">
-                            ${isUnread
-                                ? `<button type="button" class="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-[var(--nmis-secondary)] hover:text-white transition-all" data-mark-read="${item.id}">Mark Read</button>`
-                                : '<span class="text-xs text-slate-400">-</span>'
-                            }
+                            <div class="inline-flex items-center gap-2">
+                                ${isUnread
+                                    ? `<button type="button" class="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-[var(--nmis-secondary)] hover:text-white transition-all" data-mark-read="${item.id}">Mark Read</button>`
+                                    : ''
+                                }
+                                <button type="button"
+                                        class="inline-flex items-center gap-1 rounded-lg bg-rose-100 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-600 hover:text-white transition-all"
+                                        data-delete-notification="${item.id}">
+                                    Delete
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `);
@@ -203,6 +311,30 @@
             table.querySelectorAll('[data-mark-read]').forEach((button) => {
                 button.addEventListener('click', () => markNotificationRead(button.getAttribute('data-mark-read')));
             });
+
+            table.querySelectorAll('[data-delete-notification]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    openDeleteModal([button.getAttribute('data-delete-notification')]);
+                });
+            });
+
+            table.querySelectorAll('[data-select-notification]').forEach((checkbox) => {
+                checkbox.addEventListener('change', () => {
+                    const id = checkbox.getAttribute('data-select-notification');
+                    if (checkbox.checked) {
+                        selectedNotificationIds.add(id);
+                    } else {
+                        selectedNotificationIds.delete(id);
+                    }
+                    updateBulkDeleteState();
+                });
+            });
+
+            const selectAll = document.getElementById('select-all-notifications');
+            const rowCheckboxes = table.querySelectorAll('.notification-select');
+            if (selectAll) {
+                selectAll.checked = rowCheckboxes.length > 0 && Array.from(rowCheckboxes).every((item) => item.checked);
+            }
         }
 
         function updatePagination(meta) {
@@ -254,11 +386,43 @@
 
         document.addEventListener('DOMContentLoaded', function () {
             loadNotifications();
+            updateBulkDeleteState();
 
             document.getElementById('notification-search')?.addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') {
                     loadNotifications(true);
                 }
+            });
+
+            document.getElementById('delete-selected-btn')?.addEventListener('click', () => {
+                openDeleteModal(Array.from(selectedNotificationIds));
+            });
+
+            document.getElementById('delete-cancel-btn')?.addEventListener('click', closeDeleteModal);
+
+            document.getElementById('delete-confirm-btn')?.addEventListener('click', async () => {
+                const ids = [...pendingDeleteIds];
+                closeDeleteModal();
+                if (!ids.length) return;
+                if (ids.length === 1) {
+                    await deleteNotification(ids[0]);
+                    return;
+                }
+                await deleteManyNotifications(ids);
+            });
+
+            document.getElementById('select-all-notifications')?.addEventListener('change', function () {
+                const checked = this.checked;
+                document.querySelectorAll('[data-select-notification]').forEach((checkbox) => {
+                    checkbox.checked = checked;
+                    const id = checkbox.getAttribute('data-select-notification');
+                    if (checked) {
+                        selectedNotificationIds.add(id);
+                    } else {
+                        selectedNotificationIds.delete(id);
+                    }
+                });
+                updateBulkDeleteState();
             });
         });
     </script>

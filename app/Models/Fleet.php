@@ -14,6 +14,7 @@ class Fleet extends Model
     protected $fillable = [
         'fleet_code',
         'plate_number',
+        'trailer_number',
         'capacity_tons',
         'status',
     ];

@@ -21,7 +21,11 @@ class DriverRepository
             ->when($search, fn ($query) => $query->where(function ($inner) use ($search) {
                 $inner->where('name', 'like', '%'.$search.'%')
                     ->orWhere('license_number', 'like', '%'.$search.'%')
-                    ->orWhere('mobile_number', 'like', '%'.$search.'%');
+                    ->orWhere('mobile_number', 'like', '%'.$search.'%')
+                    ->orWhere('contact1_name', 'like', '%'.$search.'%')
+                    ->orWhere('contact1_phone', 'like', '%'.$search.'%')
+                    ->orWhere('contact2_name', 'like', '%'.$search.'%')
+                    ->orWhere('contact2_phone', 'like', '%'.$search.'%');
             }))
             ->when($active !== null && $active !== '', fn ($query) => $query->where('is_active', (bool) $active))
             ->latest()

@@ -14,6 +14,11 @@ return [
     */
 
     'name' => env('APP_NAME', 'Laravel'),
+    'company_name' => env('COMPANY_NAME', 'NexusFlow Company Limited Tz'),
+    'company_address' => env('COMPANY_ADDRESS', 'Dar es Salaam, Tanzania'),
+    'company_phone' => env('COMPANY_PHONE', ''),
+    'company_email' => env('COMPANY_EMAIL', ''),
+    'company_website' => env('COMPANY_WEBSITE', 'https://nexusflow.co.tz/'),
 
     /*
     |--------------------------------------------------------------------------

@@ -27,5 +27,9 @@ class FuelBalance extends Model
     {
         return $this->belongsTo(Fleet::class);
     }
-}
 
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+}

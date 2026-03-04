@@ -8,7 +8,9 @@
     <!-- Logo Section -->
     <div class="flex items-center gap-3 px-4 py-5 border-b border-white/10" 
          :class="{ 'justify-center': sidebarCollapsed }">
-        <img src="{{ asset('images/nexus-logo.png') }}" alt="NexusFlow" class="h-8 w-auto">
+        <div class="flex h-14 w-14 items-center justify-center rounded-xl border border-white/30 bg-white/95 shadow-[0_8px_20px_rgba(15,23,42,0.22)] ring-1 ring-black/5">
+            <img src="{{ asset('images/nexus-logo.png') }}" alt="NexusFlow" class="h-10 w-auto">
+        </div>
         <div x-show="!sidebarCollapsed" class="overflow-hidden">
             <p class="text-xs uppercase tracking-wider text-slate-300/60">NexusFlow</p>
             <p class="text-sm font-bold text-white">NMIS Portal</p>
@@ -27,10 +29,11 @@
                     ['route' => 'fleet.*', 'name' => 'truck', 'label' => 'Fleet', 'permission' => 'fleet.view'],
                     ['route' => 'drivers.*', 'name' => 'id', 'label' => 'Drivers', 'permission' => 'drivers.view'],
                     ['route' => 'fuel.*', 'name' => 'fuel', 'label' => 'Fuel Requisitions', 'permission' => 'fuel.view'],
-                    ['route' => 'notifications.*', 'name' => 'bell', 'label' => 'Notifications', 'permission' => null],
+                   // ['route' => 'notifications.*', 'name' => 'bell', 'label' => 'Notifications', 'permission' => null],
                     ['route' => 'admin.users.*', 'name' => 'shield', 'label' => 'Admin Users', 'permission' => 'admin.users.manage'],
                     ['route' => 'admin.roles.*', 'name' => 'lock', 'label' => 'Roles & Permissions', 'permission' => 'admin.roles.manage'],
                     ['route' => 'admin.logs.*', 'name' => 'scroll', 'label' => 'Audit Logs', 'permission' => 'admin.logs.view'],
+                    ['route' => 'admin.reports.*', 'name' => 'chart', 'label' => 'Reports', 'permission' => 'admin.dashboard.view_all'],
                 ];
             @endphp
 

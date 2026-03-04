@@ -21,7 +21,7 @@
     </x-slot>
 
     <div class="space-y-6" 
-         x-data="{ openOrderModal: false }" 
+         x-data="{ openOrderModal: @js($autoOpenCreateModal && auth()->user()->can('orders.create')) }" 
          @open-order-modal.window="openOrderModal = true">
         
         <!-- Create Order Modal -->
@@ -82,7 +82,7 @@
                                     <select name="trip_id" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all" required>
                                         <option value="">Choose a trip...</option>
                                         @foreach ($trips as $trip)
-                                            <option value="{{ $trip->encrypted_id }}">{{ $trip->trip_number }} - {{ $trip->origin }} → {{ $trip->destination }}</option>
+                                            <option value="{{ $trip->encrypted_id }}" {{ ($prefillTripEncryptedId ?? null) === $trip->encrypted_id ? 'selected' : '' }}>{{ $trip->trip_number }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -152,28 +152,34 @@
                                     </div>
                                 </div>
 
-                                <!-- Origin Address -->
+                                <!-- Origin Region -->
                                 <div class="md:col-span-1">
                                     <label class="block text-sm font-medium text-slate-700 mb-1">
-                                        Origin Address <span class="text-rose-500">*</span>
+                                        Origin Region (Tanzania) <span class="text-rose-500">*</span>
                                     </label>
-                                    <textarea name="origin_address" 
-                                              required 
-                                              rows="3"
-                                              class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all resize-none"
-                                              placeholder="Full origin address"></textarea>
+                                    <select name="origin_address"
+                                            required
+                                            class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
+                                        <option value="">Choose origin region...</option>
+                                        @foreach($tanzaniaRegions as $region)
+                                            <option value="{{ $region }}" {{ old('origin_address') === $region ? 'selected' : '' }}>{{ $region }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
 
-                                <!-- Destination Address -->
+                                <!-- Destination Region -->
                                 <div class="md:col-span-1">
                                     <label class="block text-sm font-medium text-slate-700 mb-1">
-                                        Destination Address <span class="text-rose-500">*</span>
+                                        Destination Region (Tanzania) <span class="text-rose-500">*</span>
                                     </label>
-                                    <textarea name="destination_address" 
-                                              required 
-                                              rows="3"
-                                              class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all resize-none"
-                                              placeholder="Full destination address"></textarea>
+                                    <select name="destination_address"
+                                            required
+                                            class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
+                                        <option value="">Choose destination region...</option>
+                                        @foreach($tanzaniaRegions as $region)
+                                            <option value="{{ $region }}" {{ old('destination_address') === $region ? 'selected' : '' }}>{{ $region }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
 
                                 <!-- Expected Loading Date -->
@@ -288,35 +294,83 @@
             </div>
         </div>
 
-        <!-- Search and Filter Bar -->
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div class="relative flex-1">
+        <div class="rounded-xl border border-blue-200/70 bg-blue-50/70 p-4">
+            <p class="text-sm font-semibold text-blue-900">Workflow reminder</p>
+            <p class="mt-1 text-sm text-blue-800">
+                After the creator submits an order, the next user should first move it from <span class="font-semibold">Created</span> to <span class="font-semibold">Processing</span>.
+            </p>
+        </div>
+
+        <!-- Search and Redesigned Tabs -->
+        <div class="space-y-4">
+            <div class="relative">
                 <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
                     <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                     </svg>
                 </div>
-                <input type="text" 
+                <input type="text"
                        id="order-search"
-                       placeholder="Search by order number, cargo type, customer..." 
+                       placeholder="Search by order number, cargo type, customer..."
                        class="w-full rounded-xl border-slate-200 bg-white pl-11 pr-4 py-3 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
             </div>
-            <div class="flex items-center gap-3">
-                <select id="order-status" 
-                        class="rounded-xl border-slate-200 bg-white px-4 py-3 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all min-w-[150px]">
-                    <option value="">All Statuses</option>
-                    <option value="created">Created</option>
-                    <option value="processing">Processing</option>
-                    <option value="assigned">Assigned</option>
-                    <option value="completed">Completed</option>
-                </select>
-                <button type="button" 
-                        id="order-filter-btn"
-                        class="inline-flex items-center gap-2 rounded-xl bg-[var(--nmis-primary)] px-5 py-3 text-sm font-semibold text-white hover:bg-[var(--nmis-secondary)] transition-all shadow-lg shadow-[var(--nmis-primary)]/20">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                    </svg>
-                    Apply Filters
+
+            <!-- Well-Arranged Status Tabs -->
+            <div class="flex flex-wrap items-center gap-2" id="order-status-tabs">
+                <button type="button" class="status-tab" data-status="">
+                    <span class="status-tab-content">
+                        <span class="status-tab-dot"></span>
+                        <span class="status-tab-text">All Orders</span>
+                    </span>
+                    <span id="tab-count-all" class="status-tab-count">0</span>
+                </button>
+                
+                <button type="button" class="status-tab" data-status="created">
+                    <span class="status-tab-content">
+                        <span class="status-tab-dot"></span>
+                        <span class="status-tab-text">Created</span>
+                    </span>
+                    <span id="tab-count-created" class="status-tab-count">0</span>
+                </button>
+                
+                <button type="button" class="status-tab" data-status="processing">
+                    <span class="status-tab-content">
+                        <span class="status-tab-dot"></span>
+                        <span class="status-tab-text">Processing</span>
+                    </span>
+                    <span id="tab-count-processing" class="status-tab-count">0</span>
+                </button>
+                
+                <button type="button" class="status-tab" data-status="assigned">
+                    <span class="status-tab-content">
+                        <span class="status-tab-dot"></span>
+                        <span class="status-tab-text">Assigned</span>
+                    </span>
+                    <span id="tab-count-assigned" class="status-tab-count">0</span>
+                </button>
+
+                <button type="button" class="status-tab" data-status="transportation">
+                    <span class="status-tab-content">
+                        <span class="status-tab-dot"></span>
+                        <span class="status-tab-text">Transportation</span>
+                    </span>
+                    <span id="tab-count-transportation" class="status-tab-count">0</span>
+                </button>
+
+                <button type="button" class="status-tab" data-status="incomplete">
+                    <span class="status-tab-content">
+                        <span class="status-tab-dot"></span>
+                        <span class="status-tab-text">Incomplete</span>
+                    </span>
+                    <span id="tab-count-incomplete" class="status-tab-count">0</span>
+                </button>
+
+                <button type="button" class="status-tab" data-status="completed">
+                    <span class="status-tab-content">
+                        <span class="status-tab-dot"></span>
+                        <span class="status-tab-text">Completed</span>
+                    </span>
+                    <span id="tab-count-completed" class="status-tab-count">0</span>
                 </button>
             </div>
         </div>
@@ -331,8 +385,9 @@
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Trip</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Customer</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Created Date</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Distance</th>
-                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Legs</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Fleet Management</th>
                             <th scope="col" class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Actions</th>
                         </tr>
                     </thead>
@@ -413,36 +468,189 @@
         
         /* Status badges */
         .status-badge {
-            @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+            display: inline-flex;
+            align-items: center;
+            border-radius: 9999px;
+            padding: 0.2rem 0.65rem;
+            font-size: 0.75rem;
+            line-height: 1rem;
+            font-weight: 600;
         }
-        
+
         .status-badge.created {
-            @apply bg-slate-100 text-slate-600;
+            background-color: #fef3c7;
+            color: #b45309;
         }
-        
+
         .status-badge.processing {
-            @apply bg-[var(--nmis-secondary)]/10 text-[var(--nmis-secondary)];
+            background-color: rgba(42, 157, 143, 0.14);
+            color: #0f766e;
         }
-        
+
         .status-badge.assigned {
-            @apply bg-[var(--nmis-primary)]/10 text-[var(--nmis-primary)];
+            background-color: rgba(27, 59, 134, 0.12);
+            color: #1e3a8a;
         }
-        
+
+        .status-badge.transportation {
+            background-color: #e0e7ff;
+            color: #4338ca;
+        }
+
+        .status-badge.incomplete {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+
         .status-badge.completed {
-            @apply bg-[var(--nmis-accent)]/10 text-[var(--nmis-accent)];
+            background-color: rgba(108, 182, 63, 0.16);
+            color: #3f7f1f;
+        }
+
+        /* Clean Status Tabs (white background, color on text only) */
+        .status-tab {
+            @apply inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200;
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            color: #475569;
+            min-width: fit-content;
+        }
+
+        .status-tab:hover {
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-tab.active {
+            background-color: #ffffff;
+            box-shadow: inset 0 0 0 1px currentColor, 0 6px 12px rgba(15, 23, 42, 0.08);
+        }
+
+        .status-tab-dot {
+            @apply h-2 w-2 rounded-full;
+            background: currentColor;
+            opacity: 0.9;
+        }
+
+        .status-tab.active .status-tab-dot {
+            opacity: 1;
+        }
+
+        .status-tab-count {
+            @apply inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-semibold min-w-[1.5rem];
+            background-color: #f1f5f9;
+            color: #334155;
+            margin-left: 0.25rem;
+        }
+
+        .status-tab.active .status-tab-count {
+            background-color: color-mix(in srgb, currentColor 14%, white);
+            color: currentColor;
+        }
+
+        /* Status-specific font colors */
+        .status-tab[data-status=""] {
+            color: #334155;
+        }
+
+        .status-tab[data-status="created"] {
+            color: #b45309;
+        }
+
+        .status-tab[data-status="processing"] {
+            color: #0f766e;
+        }
+
+        .status-tab[data-status="assigned"] {
+            color: #1d4ed8;
+        }
+
+        .status-tab[data-status="transportation"] {
+            color: #4338ca;
+        }
+
+        .status-tab[data-status="incomplete"] {
+            color: #b91c1c;
+        }
+
+        .status-tab[data-status="completed"] {
+            color: #15803d;
+        }
+
+        .status-tab[data-status=""] .status-tab-count {
+            background-color: #e2e8f0;
+            color: #334155;
+        }
+
+        .status-tab[data-status="created"] .status-tab-count {
+            background-color: rgba(245, 158, 11, 0.14);
+            color: #b45309;
+        }
+
+        .status-tab[data-status="processing"] .status-tab-count {
+            background-color: rgba(20, 184, 166, 0.14);
+            color: #0f766e;
+        }
+
+        .status-tab[data-status="assigned"] .status-tab-count {
+            background-color: rgba(59, 130, 246, 0.14);
+            color: #1d4ed8;
+        }
+
+        .status-tab[data-status="transportation"] .status-tab-count {
+            background-color: rgba(99, 102, 241, 0.14);
+            color: #4338ca;
+        }
+
+        .status-tab[data-status="incomplete"] .status-tab-count {
+            background-color: rgba(239, 68, 68, 0.14);
+            color: #b91c1c;
+        }
+
+        .status-tab[data-status="completed"] .status-tab-count {
+            background-color: rgba(34, 197, 94, 0.14);
+            color: #15803d;
+        }
+
+        .processing-action-btn {
+            @apply inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition-all;
+            border-color: #99f6e4;
+            background: #ffffff;
+            color: #0f766e;
+            box-shadow: 0 2px 6px rgba(15, 118, 110, 0.08);
+        }
+
+        .processing-action-btn:hover {
+            border-color: #2dd4bf;
+            background: #f0fdfa;
+            box-shadow: 0 6px 14px rgba(15, 118, 110, 0.14);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .status-tab {
+                @apply px-2.5 py-1.5 text-xs;
+            }
+            
+            .status-tab-count {
+                @apply px-1.5 py-0.5 text-[10px];
+            }
         }
     </style>
 
     @push('scripts')
     <script>
         let currentPage = 0;
+        let currentStatus = '';
         const pageSize = 10;
+        const csrfToken = '{{ csrf_token() }}';
 
         async function loadOrders(resetPage = true) {
             if (resetPage) currentPage = 0;
             
             const search = encodeURIComponent(document.getElementById('order-search').value || '');
-            const status = encodeURIComponent(document.getElementById('order-status').value || '');
+            const status = encodeURIComponent(currentStatus);
             
             // Show loading state
             document.getElementById('loading-state').classList.remove('hidden');
@@ -460,6 +668,7 @@
 
                 // Update stats
                 updateStats(payload.stats || payload.meta || {});
+                setActiveStatusTab(currentStatus);
                 
                 if (!payload.data?.length) {
                     document.getElementById('loading-state').classList.add('hidden');
@@ -472,9 +681,10 @@
                 payload.data.forEach((order) => {
                     const statusClass = order.status?.toLowerCase() || 'created';
                     const statusText = order.status?.charAt(0).toUpperCase() + order.status?.slice(1) || 'Created';
+                    const isUnattended = order.status === 'created';
                     
                     table.insertAdjacentHTML('beforeend', `
-                        <tr class="hover:bg-slate-50/80 transition-colors duration-200 group">
+                        <tr class="hover:bg-slate-50/80 transition-colors duration-200 group ${isUnattended ? 'bg-amber-50/50' : ''}">
                             <td class="whitespace-nowrap px-6 py-4">
                                 <div class="flex items-center">
                                     <div class="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-[var(--nmis-primary)]/10 to-[var(--nmis-secondary)]/10 flex items-center justify-center">
@@ -483,7 +693,10 @@
                                         </span>
                                     </div>
                                     <div class="ml-4">
-                                        <div class="text-sm font-medium text-slate-900">${order.order_number || 'N/A'}</div>
+                                        <div class="text-sm ${isUnattended ? 'font-bold text-amber-900' : 'font-medium text-slate-900'}">
+                                            ${order.order_number || 'N/A'}
+                                            ${isUnattended ? '<span class="ml-2 rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Unattended</span>' : ''}
+                                        </div>
                                         <div class="text-xs text-slate-500">${order.cargo_type || 'No cargo type'}</div>
                                     </div>
                                 </div>
@@ -501,7 +714,10 @@
                                 </span>
                             </td>
                             <td class="whitespace-nowrap px-6 py-4">
-                                <div class="text-sm text-slate-900">${order.distance_km ? order.distance_km + ' km' : 'Not set'}</div>
+                                <div class="text-sm text-slate-700">${order.created_at_label || '-'}</div>
+                            </td>
+                            <td class="whitespace-nowrap px-6 py-4">
+                                <div class="text-sm text-slate-900">${order.can_view_distance ? (order.distance_km ? order.distance_km + ' km' : 'Not calculated') : 'Restricted'}</div>
                             </td>
                             <td class="whitespace-nowrap px-6 py-4">
                                 ${order.can_manage_legs ? 
@@ -509,13 +725,34 @@
                                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                                         </svg>
-                                        Manage Legs
+                                        Manage Fleet
                                     </a>` : 
-                                    '<span class="text-sm text-slate-400">-</span>'
+                                    (order.status === 'incomplete'
+                                        ? `<span class="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-700">Trip Closed Incomplete</span>`
+                                        : (order.can_end_order
+                                        ? `<a href="${order.end_order_url}" class="inline-flex items-center gap-1 text-sm font-semibold text-indigo-700 hover:text-indigo-800 transition-colors">
+                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                </svg>
+                                                End Order
+                                           </a>`
+                                        : '<span class="text-sm text-slate-400">-</span>'))
                                 }
                             </td>
                             <td class="whitespace-nowrap px-6 py-4 text-right">
                                 <div class="flex items-center justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity duration-200">
+                                    ${order.can_start_processing ? `
+                                        <form method="POST" action="${order.status_update_url}" class="inline">
+                                            <input type="hidden" name="_token" value="${csrfToken}">
+                                            <input type="hidden" name="status" value="processing">
+                                            <button type="submit" class="processing-action-btn" title="Move order to Processing">
+                                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                                Start Processing
+                                            </button>
+                                        </form>
+                                    ` : ''}
                                     <a href="${order.show_url}" 
                                        class="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-[var(--nmis-primary)] hover:text-white transition-all" 
                                        title="View Details">
@@ -537,7 +774,7 @@
                 console.error('Failed to load orders:', error);
                 document.getElementById('order-table').innerHTML = `
                     <tr>
-                        <td colspan="7" class="px-6 py-12 text-center">
+                        <td colspan="8" class="px-6 py-12 text-center">
                             <div class="text-sm text-rose-600">Error loading orders. Please try again.</div>
                         </td>
                     </tr>
@@ -552,6 +789,24 @@
             document.getElementById('orders-processing').textContent = stats.processing || 0;
             document.getElementById('orders-completed').textContent = stats.completed || 0;
             document.getElementById('total-weight').textContent = (stats.total_weight || 0) + ' t';
+            updateTabCounts(stats);
+        }
+
+        function updateTabCounts(stats) {
+            document.getElementById('tab-count-all').textContent = stats.total || 0;
+            document.getElementById('tab-count-created').textContent = stats.created || 0;
+            document.getElementById('tab-count-processing').textContent = stats.processing || 0;
+            document.getElementById('tab-count-assigned').textContent = stats.assigned || 0;
+            document.getElementById('tab-count-transportation').textContent = stats.transportation || 0;
+            document.getElementById('tab-count-incomplete').textContent = stats.incomplete || 0;
+            document.getElementById('tab-count-completed').textContent = stats.completed || 0;
+        }
+
+        function setActiveStatusTab(status) {
+            document.querySelectorAll('.status-tab').forEach((tab) => {
+                const isActive = tab.dataset.status === status;
+                tab.classList.toggle('active', isActive);
+            });
         }
 
         function updatePagination(meta) {
@@ -595,9 +850,15 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            setActiveStatusTab(currentStatus);
             loadOrders();
             
-            document.getElementById('order-filter-btn')?.addEventListener('click', () => loadOrders(true));
+            document.querySelectorAll('.status-tab').forEach((tab) => {
+                tab.addEventListener('click', () => {
+                    currentStatus = tab.dataset.status || '';
+                    loadOrders(true);
+                });
+            });
             
             // Search on enter key
             document.getElementById('order-search')?.addEventListener('keypress', function(e) {

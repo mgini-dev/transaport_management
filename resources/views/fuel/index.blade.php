@@ -7,22 +7,46 @@
             </div>
             
             @can('fuel.create')
-                <button 
-                    x-data="{}"
-                    @click="$dispatch('open-fuel-modal')"
-                    class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--nmis-primary)] to-[var(--nmis-secondary)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--nmis-primary)]/20 hover:shadow-xl hover:scale-105 transition-all duration-300 group">
-                    <svg class="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    New Fuel Requisition
-                </button>
+                <div class="flex items-center gap-2">
+                    <button
+                        x-data="{}"
+                        @click="$dispatch('open-fuel-balance-modal')"
+                        class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-all">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                        Record Fuel Balance
+                    </button>
+                    <button 
+                        x-data="{}"
+                        @click="$dispatch('open-fuel-modal')"
+                        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--nmis-primary)] to-[var(--nmis-secondary)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--nmis-primary)]/20 hover:shadow-xl hover:scale-105 transition-all duration-300 group">
+                        <svg class="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        New Fuel Requisition
+                    </button>
+                </div>
             @endcan
         </div>
     </x-slot>
 
-    <div class="space-y-6" 
-         x-data="fuelManager()" 
-         @open-fuel-modal.window="showCreateModal = true">
+    @php
+        $ordersMeta = $orders->mapWithKeys(fn ($order) => [
+            (string) $order->id => [
+                'distance_km' => $order->distance_km !== null ? (float) $order->distance_km : null,
+                'status' => $order->status,
+            ],
+        ]);
+        $fleetBalanceMeta = $fleets->mapWithKeys(fn ($fleet) => [
+            (string) $fleet->id => (float) ($fleetBalances[$fleet->id] ?? 0),
+        ]);
+    @endphp
+
+    <div class="space-y-6"
+         x-data="fuelManager(@js($ordersMeta), @js($orderFleetMap), @js($fleetBalanceMeta))"
+         @open-fuel-modal.window="showCreateModal = true"
+         @open-fuel-balance-modal.window="showBalanceModal = true">
         
         <!-- Create Fuel Requisition Modal -->
         @can('fuel.create')
@@ -74,17 +98,55 @@
                         <form method="POST" action="{{ route('fuel.store') }}" class="p-6">
                             @csrf
                             <div class="grid gap-5 md:grid-cols-2">
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                                        Requisition Type <span class="text-rose-500">*</span>
+                                    </label>
+                                    <select name="requisition_type" x-model="requisitionType" @change="onTypeChange()"
+                                            class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all" required>
+                                        <option value="order_based">Fleet With Order</option>
+                                        <option value="fleet_only">Fleet Without Order</option>
+                                    </select>
+                                </div>
+
                                 <!-- Order Selection -->
-                                <div>
+                                <div x-show="requisitionType === 'order_based'" x-cloak>
                                     <label class="block text-sm font-medium text-slate-700 mb-1">
                                         Select Order <span class="text-rose-500">*</span>
                                     </label>
-                                    <select name="order_id" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all" required>
+                                    <select name="order_id" id="order-select" @change="onOrderChange()"
+                                            :required="requisitionType === 'order_based'"
+                                            :disabled="requisitionType !== 'order_based'"
+                                            class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all" required>
                                         <option value="">Choose an order...</option>
                                         @foreach ($orders as $order)
-                                            <option value="{{ $order->encrypted_id }}">{{ $order->order_number }} - {{ $order->cargo_type ?? 'N/A' }}</option>
+                                            <option value="{{ $order->encrypted_id }}" data-order-id="{{ $order->id }}">{{ $order->order_number }} - {{ $order->cargo_type ?? 'N/A' }} ({{ strtoupper($order->status) }})</option>
                                         @endforeach
                                     </select>
+                                </div>
+
+                                <div x-show="requisitionType === 'fleet_only'" x-cloak>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                                        Route Origin <span class="text-rose-500">*</span>
+                                    </label>
+                                    <textarea name="origin_address"
+                                              rows="2"
+                                              :required="requisitionType === 'fleet_only'"
+                                              class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all resize-none"
+                                              placeholder="Enter origin address"
+                                              x-model="fleetOnlyOrigin"></textarea>
+                                </div>
+
+                                <div x-show="requisitionType === 'fleet_only'" x-cloak>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                                        Route Destination <span class="text-rose-500">*</span>
+                                    </label>
+                                    <textarea name="destination_address"
+                                              rows="2"
+                                              :required="requisitionType === 'fleet_only'"
+                                              class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all resize-none"
+                                              placeholder="Enter destination address"
+                                              x-model="fleetOnlyDestination"></textarea>
                                 </div>
 
                                 <!-- Fleet Selection -->
@@ -92,12 +154,15 @@
                                     <label class="block text-sm font-medium text-slate-700 mb-1">
                                         Select Fleet <span class="text-rose-500">*</span>
                                     </label>
-                                    <select name="fleet_id" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all" required>
+                                    <select name="fleet_id" id="fleet-select" @change="onFleetChange()"
+                                            :disabled="createFleetDisabled"
+                                            class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all" required>
                                         <option value="">Choose a fleet...</option>
                                         @foreach ($fleets as $fleet)
-                                            <option value="{{ $fleet->encrypted_id }}">{{ $fleet->fleet_code }} - {{ $fleet->plate_number }} ({{ $fleet->capacity_tons }} tons)</option>
+                                            <option value="{{ $fleet->encrypted_id }}" data-fleet-id="{{ $fleet->id }}">{{ $fleet->fleet_code }} - {{ $fleet->plate_number }} | Trailer: {{ $fleet->trailer_number ?? 'N/A' }}</option>
                                         @endforeach
                                     </select>
+                                    <p class="mt-1 text-xs" :class="hasAssignedFleets ? 'text-emerald-700' : 'text-amber-600'" x-text="createFleetHint"></p>
                                 </div>
 
                                 <!-- Fuel Station -->
@@ -105,24 +170,74 @@
                                     <label class="block text-sm font-medium text-slate-700 mb-1">
                                         Fuel Station <span class="text-rose-500">*</span>
                                     </label>
-                                    <input type="text" 
-                                           name="fuel_station" 
-                                           required 
+                                    <input type="text"
+                                           name="fuel_station"
+                                           required
                                            class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
                                            placeholder="e.g., Total, Shell, Ola">
                                 </div>
 
-                                <!-- Additional Litres -->
-                                <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">
-                                        Additional Litres <span class="text-rose-500">*</span>
-                                    </label>
-                                    <input type="number" 
-                                           name="additional_litres" 
-                                           step="0.01" 
-                                           required 
-                                           class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
-                                           placeholder="0.00">
+                                <div class="rounded-xl bg-slate-50 p-4 md:col-span-2">
+                                    <p class="text-sm font-semibold text-slate-800">Distance and Fuel Estimation</p>
+                                    <p class="mt-1 text-xs text-slate-500">Formula: 1 km uses 0.5 litres</p>
+                                    <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                        <div>
+                                            <label class="block text-xs font-semibold text-slate-500 mb-1">Order Distance (km)</label>
+                                            <input type="number" step="0.01" name="base_distance_km" readonly
+                                                   class="w-full rounded-lg border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                                                   x-model="baseDistanceKm">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-semibold text-slate-500 mb-1">Additional Distance (km)</label>
+                                            <input type="number" step="0.01" min="0" name="additional_distance_km"
+                                                   class="w-full rounded-lg border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-[var(--nmis-primary)] focus:ring-1 focus:ring-[var(--nmis-primary)]/20"
+                                                   x-model="additionalDistanceKm" @input="recalculateDistance()">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-semibold text-slate-500 mb-1">Total Distance (km)</label>
+                                            <input type="number" step="0.01" name="total_distance_km" readonly
+                                                   class="w-full rounded-lg border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                                                   x-model="totalDistanceKm">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-semibold text-slate-500 mb-1">Fleet Balance (L)</label>
+                                            <input type="number" step="0.01" name="available_balance_litres" readonly
+                                                   class="w-full rounded-lg border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                                                   x-model="availableBalanceLitres">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-semibold text-slate-500 mb-1">Estimated Fuel (L)</label>
+                                            <input type="number" step="0.01" name="estimated_fuel_litres" readonly
+                                                   class="w-full rounded-lg border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                                                   x-model="estimatedFuelLitres">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-semibold text-slate-500 mb-1">Required to Request (L)</label>
+                                            <input type="number" step="0.01" name="additional_litres" readonly
+                                                   class="w-full rounded-lg border-slate-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800"
+                                                   x-model="requestedLitres">
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 flex flex-wrap items-center gap-2">
+                                        <button type="button"
+                                                x-show="requisitionType === 'fleet_only'"
+                                                @click="calculateFleetOnlyDistance()"
+                                                class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-all">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A2 2 0 013 15.382V5.618a2 2 0 011.053-1.764L9 2m0 18l5.447-2.724A2 2 0 0016 15.382V5.618a2 2 0 00-1.053-1.764L9 2m0 18V2"></path>
+                                            </svg>
+                                            Calculate Route Distance
+                                        </button>
+                                        <button type="button"
+                                                @click="calculateFuel()"
+                                                class="inline-flex items-center gap-2 rounded-lg bg-[var(--nmis-primary)] px-4 py-2 text-xs font-semibold text-white hover:bg-[var(--nmis-secondary)] transition-all">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                            </svg>
+                                                Calculate Fuel
+                                        </button>
+                                    </div>
+                                    <p x-show="distanceEstimateError" x-text="distanceEstimateError" class="mt-2 text-xs text-rose-600"></p>
                                 </div>
 
                                 <!-- Fuel Price -->
@@ -135,7 +250,8 @@
                                         <input type="number" 
                                                name="fuel_price" 
                                                step="0.01" 
-                                               required 
+                                               required
+                                               @input="calculateTotal()"
                                                class="w-full rounded-xl border-slate-300 bg-slate-50 pl-14 pr-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
                                                placeholder="0.00">
                                     </div>
@@ -152,6 +268,7 @@
                                                name="discount" 
                                                step="0.01" 
                                                value="0"
+                                               @input="calculateTotal()"
                                                class="w-full rounded-xl border-slate-300 bg-slate-50 pl-14 pr-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
                                                placeholder="0.00">
                                     </div>
@@ -162,15 +279,11 @@
                                     <label class="block text-sm font-medium text-slate-700 mb-1">
                                         Payment Channel <span class="text-rose-500">*</span>
                                     </label>
-                                    <select name="payment_channel" 
-                                            class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
-                                            required>
-                                        <option value="">Select channel...</option>
-                                        <option value="M-PESA">M-PESA</option>
-                                        <option value="Bank Transfer">Bank Transfer</option>
-                                        <option value="Cash">Cash</option>
-                                        <option value="Fuel Card">Fuel Card</option>
-                                    </select>
+                                    <input type="text"
+                                           name="payment_channel"
+                                           required
+                                           class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
+                                           placeholder="e.g., M-PESA, Bank Transfer, Fuel Card">
                                 </div>
 
                                 <!-- Payment Account -->
@@ -202,7 +315,7 @@
                                         <span class="font-medium text-slate-700">Total Amount Preview:</span>
                                         <span class="text-lg font-bold text-[var(--nmis-primary)]" id="total-preview">TSh 0.00</span>
                                     </div>
-                                    <p class="mt-1 text-xs text-slate-500">Calculated as (litres × price) - discount</p>
+                                    <p class="mt-1 text-xs text-slate-500">Calculated as (required litres x price) - discount</p>
                                 </div>
                             </div>
 
@@ -217,6 +330,75 @@
                                         class="rounded-xl bg-gradient-to-r from-[var(--nmis-primary)] to-[var(--nmis-secondary)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--nmis-primary)]/20 hover:shadow-xl hover:scale-105 transition-all">
                                     Submit Requisition
                                 </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endcan
+
+        @can('fuel.create')
+            <div x-show="showBalanceModal"
+                 x-cloak
+                 class="fixed inset-0 z-50 overflow-y-auto"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0">
+                <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" @click="showBalanceModal = false"></div>
+                <div class="flex min-h-full items-center justify-center p-4">
+                    <div class="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
+                        <div class="flex items-center justify-between border-b border-slate-200/60 px-6 py-4">
+                            <h3 class="text-lg font-semibold text-slate-900">Record Fuel Balance After Trip</h3>
+                            <button @click="showBalanceModal = false" class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-500 transition-colors">
+                                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <form method="POST" action="{{ route('fuel.balance.store') }}" class="p-6">
+                            @csrf
+                            <div class="grid gap-5 md:grid-cols-2">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Completed Order</label>
+                                    <select name="order_id" id="balance-order-select" @change="onBalanceOrderChange()"
+                                            class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all" required>
+                                        <option value="">Choose completed order...</option>
+                                        @foreach($completedOrders as $order)
+                                            <option value="{{ $order->encrypted_id }}" data-order-id="{{ $order->id }}">{{ $order->order_number }} - {{ $order->cargo_type ?? 'N/A' }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Fleet</label>
+                                    <select name="fleet_id" id="balance-fleet-select" :disabled="balanceFleetDisabled"
+                                            class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all" required>
+                                        <option value="">Choose fleet...</option>
+                                        @foreach($fleets as $fleet)
+                                            <option value="{{ $fleet->encrypted_id }}" data-fleet-id="{{ $fleet->id }}">{{ $fleet->fleet_code }} - {{ $fleet->plate_number }}</option>
+                                        @endforeach
+                                    </select>
+                                    <p class="mt-1 text-xs" :class="balanceHasAssignedFleets ? 'text-emerald-700' : 'text-amber-600'" x-text="balanceFleetHint"></p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Remaining Litres</label>
+                                    <input type="number" step="0.01" min="0" name="remaining_litres" required
+                                           class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
+                                           placeholder="0.00">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Remarks (Optional)</label>
+                                    <textarea name="remarks" rows="2"
+                                              class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all resize-none"></textarea>
+                                </div>
+                            </div>
+                            <div class="mt-6 flex items-center justify-end gap-3 border-t border-slate-200/60 pt-4">
+                                <button type="button" @click="showBalanceModal = false"
+                                        class="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-all">Cancel</button>
+                                <button type="submit"
+                                        class="rounded-xl bg-gradient-to-r from-[var(--nmis-primary)] to-[var(--nmis-secondary)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--nmis-primary)]/20 hover:shadow-xl transition-all">Save Balance</button>
                             </div>
                         </form>
                     </div>
@@ -249,7 +431,7 @@
                         </svg>
                     </span>
                 </div>
-                <p class="mt-3 text-3xl font-bold text-slate-900">{{ $requisitions->total() }}</p>
+                <p class="mt-3 text-3xl font-bold text-slate-900">{{ number_format($totalRequisitions) }}</p>
             </div>
             <div class="rounded-xl border border-slate-200/60 bg-white p-5 shadow-sm">
                 <div class="flex items-center justify-between">
@@ -260,7 +442,7 @@
                         </svg>
                     </span>
                 </div>
-                <p class="mt-3 text-3xl font-bold text-slate-900" id="submitted-count">{{ $requisitions->where('status', 'submitted')->count() }}</p>
+                <p class="mt-3 text-3xl font-bold text-slate-900" id="submitted-count">{{ number_format((int) ($statusCounts['submitted'] ?? 0)) }}</p>
             </div>
             <div class="rounded-xl border border-slate-200/60 bg-white p-5 shadow-sm">
                 <div class="flex items-center justify-between">
@@ -271,7 +453,7 @@
                         </svg>
                     </span>
                 </div>
-                <p class="mt-3 text-3xl font-bold text-[var(--nmis-secondary)]" id="supervisor-count">{{ $requisitions->where('status', 'supervisor_approved')->count() }}</p>
+                <p class="mt-3 text-3xl font-bold text-[var(--nmis-secondary)]" id="supervisor-count">{{ number_format((int) ($statusCounts['supervisor_approved'] ?? 0)) }}</p>
             </div>
             <div class="rounded-xl border border-slate-200/60 bg-white p-5 shadow-sm">
                 <div class="flex items-center justify-between">
@@ -282,7 +464,7 @@
                         </svg>
                     </span>
                 </div>
-                <p class="mt-3 text-3xl font-bold text-[var(--nmis-accent)]" id="accountant-count">{{ $requisitions->where('status', 'accountant_approved')->count() }}</p>
+                <p class="mt-3 text-3xl font-bold text-[var(--nmis-accent)]" id="accountant-count">{{ number_format((int) ($statusCounts['accountant_approved'] ?? 0)) }}</p>
             </div>
             <div class="rounded-xl border border-slate-200/60 bg-white p-5 shadow-sm">
                 <div class="flex items-center justify-between">
@@ -293,42 +475,45 @@
                         </svg>
                     </span>
                 </div>
-                <p class="mt-3 text-3xl font-bold text-slate-900" id="total-amount">TSh {{ number_format($requisitions->sum('total_amount'), 0) }}</p>
+                <p class="mt-3 text-3xl font-bold text-slate-900" id="total-amount">TSh {{ number_format($totalAmount, 0) }}</p>
             </div>
         </div>
 
-        <!-- Search and Filter Bar -->
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div class="relative flex-1">
-                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                    <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                </div>
-                <input type="text" 
-                       id="fuel-search"
-                       placeholder="Search by order number, fleet code, station..." 
-                       class="w-full rounded-xl border-slate-200 bg-white pl-11 pr-4 py-3 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
+        <!-- Status Tabs -->
+        <div class="rounded-xl border border-slate-200/60 bg-white p-3 shadow-sm">
+            <div class="flex flex-wrap gap-2">
+                @foreach($statusTabs as $tab)
+                    @php
+                        $isActiveTab = $activeStatus === $tab['key'];
+                        $labelColor = match ($tab['key']) {
+                            'submitted' => 'text-[var(--nmis-primary)]',
+                            'supervisor_approved' => 'text-[var(--nmis-secondary)]',
+                            'supervisor_rejected' => 'text-rose-700',
+                            'accountant_approved' => 'text-[var(--nmis-accent)]',
+                            'accountant_rejected' => 'text-rose-700',
+                            default => 'text-slate-700',
+                        };
+                    @endphp
+                    <a href="{{ route('fuel.index', ['status' => $tab['key']]) }}"
+                       class="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-all {{ $isActiveTab ? 'border-slate-300 bg-slate-50 shadow-sm' : 'border-slate-200 bg-white hover:bg-slate-50' }}">
+                        <span class="{{ $labelColor }}">{{ $tab['label'] }}</span>
+                        <span class="inline-flex min-w-[1.5rem] justify-center rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">{{ $tab['count'] }}</span>
+                    </a>
+                @endforeach
             </div>
-            <div class="flex items-center gap-3">
-                <select id="fuel-status-filter" 
-                        class="rounded-xl border-slate-200 bg-white px-4 py-3 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all min-w-[150px]">
-                    <option value="">All Statuses</option>
-                    <option value="submitted">Submitted</option>
-                    <option value="supervisor_approved">Supervisor Approved</option>
-                    <option value="supervisor_rejected">Supervisor Rejected</option>
-                    <option value="accountant_approved">Accountant Approved</option>
-                    <option value="accountant_rejected">Accountant Rejected</option>
-                </select>
-                <button type="button" 
-                        id="fuel-filter-btn"
-                        class="inline-flex items-center gap-2 rounded-xl bg-[var(--nmis-primary)] px-5 py-3 text-sm font-semibold text-white hover:bg-[var(--nmis-secondary)] transition-all shadow-lg shadow-[var(--nmis-primary)]/20">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                    </svg>
-                    Apply Filters
-                </button>
+        </div>
+
+        <!-- Search -->
+        <div class="relative">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
             </div>
+            <input type="text"
+                   id="fuel-search"
+                   placeholder="Search by requisition ID, order number, fleet, requester, station..."
+                   class="w-full rounded-xl border-slate-200 bg-white pl-11 pr-4 py-3 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
         </div>
 
         <!-- Requisitions Table -->
@@ -340,6 +525,7 @@
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Requisition ID</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Order & Fleet</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Station & Amount</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Fuel Math</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Timeline</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Actions</th>
@@ -356,30 +542,71 @@
                                             </span>
                                         </div>
                                         <div class="ml-4">
-                                            <div class="text-sm font-medium text-slate-900">REQ-{{ str_pad($item->id, 6, '0', STR_PAD_LEFT) }}</div>
+                                            <div class="text-sm {{ in_array($item->status, ['submitted', 'supervisor_approved'], true) ? 'font-bold text-slate-900' : 'font-medium text-slate-900' }}">
+                                                REQ-{{ str_pad($item->id, 6, '0', STR_PAD_LEFT) }}
+                                            </div>
                                             <div class="text-xs text-slate-500">Requested: {{ $item->requester?->name ?? 'N/A' }}</div>
                                         </div>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="text-sm font-medium text-slate-900">{{ $item->order?->order_number ?? 'N/A' }}</div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="text-sm font-medium text-slate-900">{{ $item->order?->order_number ?? 'No Order' }}</div>
+                                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold {{ ($item->requisition_type ?? 'order_based') === 'fleet_only' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700' }}">
+                                            {{ ($item->requisition_type ?? 'order_based') === 'fleet_only' ? 'Fleet Only' : 'Order Based' }}
+                                        </span>
+                                    </div>
                                     <div class="text-xs text-slate-500 flex items-center gap-1 mt-1">
                                         <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A2 2 0 013 15.382V5.618a2 2 0 011.053-1.764L9 2m0 18l5.447-2.724A2 2 0 0016 15.382V5.618a2 2 0 00-1.053-1.764L9 2m0 18V2"></path>
                                         </svg>
                                         {{ $item->fleet?->fleet_code ?? 'No fleet' }} - {{ $item->fleet?->plate_number ?? '' }}
                                     </div>
+                                    @if(($item->requisition_type ?? 'order_based') === 'fleet_only')
+                                        <div class="mt-1 text-xs text-slate-500">
+                                            {{ $item->origin_address ?? '-' }} to {{ $item->destination_address ?? '-' }}
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="text-sm font-medium text-slate-900">{{ $item->fuel_station }}</div>
                                     <div class="text-xs text-slate-500 mt-1">
-                                        {{ number_format($item->additional_litres, 1) }} L × TSh {{ number_format($item->fuel_price, 2) }}
+                                        {{ number_format($item->additional_litres, 1) }} L x TSh {{ number_format($item->fuel_price, 2) }}
                                         @if($item->discount > 0)
                                             <span class="text-amber-600"> (Discount: TSh {{ number_format($item->discount, 2) }})</span>
                                         @endif
                                     </div>
                                     <div class="text-sm font-semibold text-[var(--nmis-primary)] mt-1">
                                         TSh {{ number_format($item->total_amount, 2) }}
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="grid gap-1 text-xs text-slate-600 min-w-[230px]">
+                                        <div class="flex items-center justify-between">
+                                            <span>Base distance</span>
+                                            <span class="font-semibold text-slate-800">{{ number_format((float) ($item->base_distance_km ?? 0), 2) }} km</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span>Additional distance</span>
+                                            <span class="font-semibold text-slate-800">{{ number_format((float) ($item->additional_distance_km ?? 0), 2) }} km</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span>Total distance</span>
+                                            <span class="font-semibold text-slate-900">{{ number_format((float) ($item->total_distance_km ?? 0), 2) }} km</span>
+                                        </div>
+                                        <div class="h-px bg-slate-200 my-1"></div>
+                                        <div class="flex items-center justify-between">
+                                            <span>Estimated fuel</span>
+                                            <span class="font-semibold text-[var(--nmis-primary)]">{{ number_format((float) ($item->estimated_fuel_litres ?? 0), 2) }} L</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span>Fleet balance</span>
+                                            <span class="font-semibold text-slate-800">{{ number_format((float) ($item->available_balance_litres ?? 0), 2) }} L</span>
+                                        </div>
+                                        <div class="flex items-center justify-between rounded-md bg-emerald-50 px-2 py-1">
+                                            <span class="text-emerald-700">Requested</span>
+                                            <span class="font-semibold text-emerald-700">{{ number_format((float) ($item->additional_litres ?? 0), 2) }} L</span>
+                                        </div>
                                     </div>
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4">
@@ -436,104 +663,26 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="space-y-2 min-w-[200px]">
-                                        @can('fuel.approve.supervisor')
-                                            @if ($item->status === 'submitted')
-                                                <div class="flex gap-2">
-                                                    <form method="POST" action="{{ route('fuel.supervisor.decision', $item->encrypted_id) }}" 
-                                                          class="flex-1"
-                                                          onsubmit="return confirm('Approve this requisition?')">
-                                                        @csrf
-                                                        <input type="hidden" name="approved" value="1" />
-                                                        <div class="flex gap-1">
-                                                            <input name="remarks" 
-                                                                   class="w-full rounded-lg border-slate-200 bg-slate-50 px-2 py-1 text-xs focus:border-[var(--nmis-primary)] focus:ring-1 focus:ring-[var(--nmis-primary)]/20" 
-                                                                   placeholder="Remarks (optional)" />
-                                                            <button type="submit" 
-                                                                    class="rounded-lg bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-200 transition-colors"
-                                                                    title="Approve">
-                                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                                                </svg>
-                                                            </button>
-                                                        </div>
-                                                    </form>
-                                                    <form method="POST" action="{{ route('fuel.supervisor.decision', $item->encrypted_id) }}" 
-                                                          class="flex-1"
-                                                          onsubmit="return confirm('Reject this requisition?')">
-                                                        @csrf
-                                                        <input type="hidden" name="approved" value="0" />
-                                                        <div class="flex gap-1">
-                                                            <input name="remarks" 
-                                                                   class="w-full rounded-lg border-slate-200 bg-slate-50 px-2 py-1 text-xs focus:border-rose-300 focus:ring-1 focus:ring-rose-200" 
-                                                                   placeholder="Reason (required)" 
-                                                                   required />
-                                                            <button type="submit" 
-                                                                    class="rounded-lg bg-rose-100 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-200 transition-colors"
-                                                                    title="Reject">
-                                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                                                </svg>
-                                                            </button>
-                                                        </div>
-                                                    </form>
-                                                </div>
-                                            @endif
-                                        @endcan
-
-                                        @can('fuel.approve.accounting')
-                                            @if ($item->status === 'supervisor_approved')
-                                                <div class="flex gap-2">
-                                                    <form method="POST" action="{{ route('fuel.accountant.decision', $item->encrypted_id) }}" 
-                                                          class="flex-1"
-                                                          onsubmit="return confirm('Finalize this requisition?')">
-                                                        @csrf
-                                                        <input type="hidden" name="approved" value="1" />
-                                                        <div class="flex gap-1">
-                                                            <input name="remarks" 
-                                                                   class="w-full rounded-lg border-slate-200 bg-slate-50 px-2 py-1 text-xs focus:border-[var(--nmis-primary)] focus:ring-1 focus:ring-[var(--nmis-primary)]/20" 
-                                                                   placeholder="Remarks (optional)" />
-                                                            <button type="submit" 
-                                                                    class="rounded-lg bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-200 transition-colors"
-                                                                    title="Finalize">
-                                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                                                </svg>
-                                                            </button>
-                                                        </div>
-                                                    </form>
-                                                    <form method="POST" action="{{ route('fuel.accountant.decision', $item->encrypted_id) }}" 
-                                                          class="flex-1"
-                                                          onsubmit="return confirm('Reject this requisition?')">
-                                                        @csrf
-                                                        <input type="hidden" name="approved" value="0" />
-                                                        <div class="flex gap-1">
-                                                            <input name="remarks" 
-                                                                   class="w-full rounded-lg border-slate-200 bg-slate-50 px-2 py-1 text-xs focus:border-rose-300 focus:ring-1 focus:ring-rose-200" 
-                                                                   placeholder="Reason (required)" 
-                                                                   required />
-                                                            <button type="submit" 
-                                                                    class="rounded-lg bg-rose-100 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-200 transition-colors"
-                                                                    title="Reject">
-                                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                                                </svg>
-                                                            </button>
-                                                        </div>
-                                                    </form>
-                                                </div>
-                                            @endif
-                                        @endcan
-                                        
-                                        @if(!in_array($item->status, ['submitted', 'supervisor_approved']))
-                                            <span class="text-xs text-slate-400">No actions available</span>
+                                    <div class="flex min-w-[220px] items-center gap-2">
+                                        <a href="{{ route('fuel.show', $item->encrypted_id) }}"
+                                           class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[var(--nmis-primary)] hover:bg-[var(--nmis-primary)]/5 transition-all">
+                                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.269 2.943 9.542 7-1.273 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                            </svg>
+                                            View
+                                        </a>
+                                        @if($item->status === 'submitted')
+                                            <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">Pending Supervisor</span>
+                                        @elseif($item->status === 'supervisor_approved')
+                                            <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">Pending Accounting</span>
                                         @endif
                                     </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-6 py-12 text-center">
+                                <td colspan="7" class="px-6 py-12 text-center">
                                     <div class="flex flex-col items-center justify-center">
                                         <div class="rounded-full bg-slate-100 p-3 mb-4">
                                             <svg class="h-8 w-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -598,57 +747,224 @@
 
     @push('scripts')
     <script>
-        function fuelManager() {
+        function fuelManager(ordersMeta = {}, orderFleetMap = {}, fleetBalanceMeta = {}) {
             return {
                 showCreateModal: false,
-                
+                showBalanceModal: false,
+                requisitionType: 'order_based',
+                baseDistanceKm: 0,
+                additionalDistanceKm: 0,
+                totalDistanceKm: 0,
+                estimatedFuelLitres: 0,
+                availableBalanceLitres: 0,
+                requestedLitres: 0,
+                fleetOnlyOrigin: '',
+                fleetOnlyDestination: '',
+                distanceEstimateError: '',
+                createFleetDisabled: true,
+                hasAssignedFleets: false,
+                createFleetHint: 'Select an order first to view assigned fleet(s).',
+                balanceFleetDisabled: true,
+                balanceHasAssignedFleets: false,
+                balanceFleetHint: 'Select a completed order first to view assigned fleet(s).',
+                ordersMeta,
+                orderFleetMap,
+                fleetBalanceMeta,
+
+                init() {
+                    this.onTypeChange();
+                    this.onOrderChange();
+                    this.onBalanceOrderChange();
+                },
+
+                resetFleetOptions(fleetSelectId) {
+                    const fleetSelect = document.getElementById(fleetSelectId);
+                    if (!fleetSelect) {
+                        return;
+                    }
+
+                    Array.from(fleetSelect.options).forEach((option, index) => {
+                        option.hidden = false;
+                        option.disabled = false;
+                        if (index === 0) {
+                            option.hidden = false;
+                            option.disabled = false;
+                        }
+                    });
+                },
+
+                onTypeChange() {
+                    this.distanceEstimateError = '';
+                    if (this.requisitionType === 'fleet_only') {
+                        this.resetFleetOptions('fleet-select');
+                        this.createFleetDisabled = false;
+                        this.hasAssignedFleets = true;
+                        this.createFleetHint = 'Fleet-only requisition: choose any eligible fleet and calculate route distance.';
+                        this.baseDistanceKm = 0;
+                        this.recalculateDistance();
+                        this.onFleetChange();
+                        return;
+                    }
+
+                    this.fleetOnlyOrigin = '';
+                    this.fleetOnlyDestination = '';
+                    this.onOrderChange();
+                },
+
+                applyOrderFleetFilter(orderSelectId, fleetSelectId) {
+                    const orderSelect = document.getElementById(orderSelectId);
+                    const selectedOrderOption = orderSelect?.selectedOptions?.[0] || null;
+                    const orderNumericId = selectedOrderOption?.dataset?.orderId || '';
+                    const fleetSelect = document.getElementById(fleetSelectId);
+                    if (!fleetSelect) {
+                        return { orderNumericId, hasAssignedFleets: false, labels: [] };
+                    }
+
+                    const assignedFleetIds = (this.orderFleetMap[orderNumericId] || []).map((id) => String(id));
+                    const assignedFleetLabels = [];
+
+                    Array.from(fleetSelect.options).forEach((option, index) => {
+                        if (index === 0) {
+                            option.hidden = false;
+                            option.disabled = false;
+                            return;
+                        }
+
+                        const fleetNumericId = option.dataset?.fleetId || '';
+                        const isAssigned = orderNumericId ? assignedFleetIds.includes(fleetNumericId) : false;
+                        option.hidden = !isAssigned;
+                        option.disabled = !isAssigned;
+
+                        if (isAssigned) {
+                            assignedFleetLabels.push(option.textContent.trim());
+                        }
+                    });
+
+                    const selectedFleetOption = fleetSelect.selectedOptions?.[0] || null;
+                    const selectedFleetNumericId = selectedFleetOption?.dataset?.fleetId || '';
+                    if (fleetSelect.value && !assignedFleetIds.includes(selectedFleetNumericId)) {
+                        fleetSelect.value = '';
+                    }
+
+                    return {
+                        orderNumericId,
+                        hasAssignedFleets: assignedFleetIds.length > 0,
+                        labels: assignedFleetLabels,
+                    };
+                },
+
+                onOrderChange() {
+                    if (this.requisitionType !== 'order_based') {
+                        return;
+                    }
+
+                    const result = this.applyOrderFleetFilter('order-select', 'fleet-select');
+                    this.createFleetDisabled = !result.orderNumericId || !result.hasAssignedFleets;
+                    this.hasAssignedFleets = result.hasAssignedFleets;
+                    this.createFleetHint = !result.orderNumericId
+                        ? 'Select an order first to view assigned fleet(s).'
+                        : (!result.hasAssignedFleets
+                            ? 'No fleet is assigned to this order yet. Assign one in Orders -> Manage Legs.'
+                            : `Assigned fleet(s): ${result.labels.join(', ')}`);
+
+                    const distance = this.ordersMeta?.[result.orderNumericId]?.distance_km;
+                    this.baseDistanceKm = distance !== null && distance !== undefined ? parseFloat(distance) : 0;
+                    this.recalculateDistance();
+                    this.onFleetChange();
+                },
+
+                onBalanceOrderChange() {
+                    const result = this.applyOrderFleetFilter('balance-order-select', 'balance-fleet-select');
+                    this.balanceFleetDisabled = !result.orderNumericId || !result.hasAssignedFleets;
+                    this.balanceHasAssignedFleets = result.hasAssignedFleets;
+                    this.balanceFleetHint = !result.orderNumericId
+                        ? 'Select a completed order first to view assigned fleet(s).'
+                        : (!result.hasAssignedFleets
+                            ? 'No fleet is assigned to this order yet.'
+                            : `Assigned fleet(s): ${result.labels.join(', ')}`);
+                },
+
+                onFleetChange() {
+                    const selectedFleetOption = document.getElementById('fleet-select')?.selectedOptions?.[0] || null;
+                    const fleetNumericId = selectedFleetOption?.dataset?.fleetId || '';
+                    this.availableBalanceLitres = parseFloat(this.fleetBalanceMeta?.[fleetNumericId] ?? 0);
+                    this.calculateFuel();
+                },
+
+                async calculateFleetOnlyDistance() {
+                    this.distanceEstimateError = '';
+                    const origin = (this.fleetOnlyOrigin || '').trim();
+                    const destination = (this.fleetOnlyDestination || '').trim();
+                    if (!origin || !destination) {
+                        this.distanceEstimateError = 'Origin and destination are required for fleet-only requisition.';
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch("{{ route('fuel.distance.estimate') }}", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                            body: JSON.stringify({
+                                origin_address: origin,
+                                destination_address: destination,
+                            }),
+                        });
+
+                        const payload = await response.json();
+                        if (!response.ok) {
+                            this.distanceEstimateError = payload?.message || 'Distance could not be calculated.';
+                            return;
+                        }
+
+                        this.baseDistanceKm = parseFloat(payload.distance_km || 0);
+                        this.recalculateDistance();
+                        this.calculateFuel();
+                    } catch (error) {
+                        this.distanceEstimateError = 'Distance could not be calculated right now. Please try again shortly.';
+                    }
+                },
+
+                recalculateDistance() {
+                    const base = parseFloat(this.baseDistanceKm || 0);
+                    const extra = parseFloat(this.additionalDistanceKm || 0);
+                    this.totalDistanceKm = Math.max(base + extra, 0);
+                },
+
+                calculateFuel() {
+                    this.recalculateDistance();
+                    this.estimatedFuelLitres = +(this.totalDistanceKm * 0.5).toFixed(2);
+                    this.requestedLitres = +Math.max(this.estimatedFuelLitres - this.availableBalanceLitres, 0).toFixed(2);
+                    this.calculateTotal();
+                },
+
                 calculateTotal() {
-                    const litres = parseFloat(document.querySelector('input[name="additional_litres"]')?.value) || 0;
                     const price = parseFloat(document.querySelector('input[name="fuel_price"]')?.value) || 0;
                     const discount = parseFloat(document.querySelector('input[name="discount"]')?.value) || 0;
-                    const total = (litres * price) - discount;
-                    
-                    document.getElementById('total-preview').textContent = 'TSh ' + total.toFixed(2);
+                    const total = Math.max((this.requestedLitres * price) - discount, 0);
+                    const node = document.getElementById('total-preview');
+                    if (node) node.textContent = 'TSh ' + total.toFixed(2);
                 }
             }
         }
 
-        // Live calculation
-        document.addEventListener('DOMContentLoaded', function() {
-            const inputs = ['additional_litres', 'fuel_price', 'discount'];
-            inputs.forEach(id => {
-                const input = document.querySelector(`[name="${id}"]`);
-                if (input) {
-                    input.addEventListener('input', () => {
-                        if (window.fuelManager) {
-                            window.fuelManager.calculateTotal();
-                        }
-                    });
-                }
-            });
-        });
-
-        // Live search functionality
+        // Live search functionality (status is handled by tabs via query string)
         document.getElementById('fuel-search')?.addEventListener('keyup', filterRequisitions);
-        document.getElementById('fuel-status-filter')?.addEventListener('change', filterRequisitions);
-        document.getElementById('fuel-filter-btn')?.addEventListener('click', filterRequisitions);
 
         function filterRequisitions() {
             const searchTerm = document.getElementById('fuel-search').value.toLowerCase();
-            const statusFilter = document.getElementById('fuel-status-filter').value;
             const rows = document.querySelectorAll('tbody tr');
             
             rows.forEach(row => {
-                if (row.querySelector('td[colspan="6"]')) return; // Skip empty state row
-                
-                const orderText = row.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
-                const stationText = row.querySelector('td:nth-child(3)')?.textContent.toLowerCase() || '';
-                const status = row.querySelector('td:nth-child(4) span')?.textContent.trim().toLowerCase().replace(/\s+/g, '_') || '';
-                
-                const matchesSearch = orderText.includes(searchTerm) || stationText.includes(searchTerm);
-                const matchesStatus = !statusFilter || status.includes(statusFilter);
-                
-                row.style.display = matchesSearch && matchesStatus ? '' : 'none';
+                if (row.querySelector('td[colspan="7"]')) return; // Skip empty state row
+
+                const rowText = row.textContent.toLowerCase();
+                const matchesSearch = rowText.includes(searchTerm);
+                row.style.display = matchesSearch ? '' : 'none';
             });
         }
 

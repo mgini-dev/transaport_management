@@ -11,6 +11,7 @@ use App\Support\EncryptedId;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class TripController extends Controller
@@ -78,6 +79,8 @@ class TripController extends Controller
             'created' => $orders->where('status', 'created')->count(),
             'processing' => $orders->where('status', 'processing')->count(),
             'assigned' => $orders->where('status', 'assigned')->count(),
+            'transportation' => $orders->where('status', 'transportation')->count(),
+            'incomplete' => $orders->where('status', 'incomplete')->count(),
             'completed' => $orders->where('status', 'completed')->count(),
         ];
 
@@ -109,8 +112,72 @@ class TripController extends Controller
     {
         $trip = Trip::query()->findOrFail(EncryptedId::decode($tripId));
         $this->authorize('close', $trip);
+        $forceClose = (bool) $request->boolean('force_close');
 
-        $this->tripService->close($trip, $request->user());
+        $openOrders = $trip->orders()
+            ->select(['id', 'order_number', 'status'])
+            ->where('status', '!=', 'completed')
+            ->get();
+
+        if ($forceClose && $openOrders->isNotEmpty() && ! $request->has('explanations')) {
+            $statusBreakdown = $openOrders
+                ->groupBy('status')
+                ->map(fn (Collection $items) => $items->count())
+                ->toArray();
+
+            return back()->with('trip_close_warning', [
+                'trip_number' => $trip->trip_number,
+                'trip_show_url' => route('trips.show', $trip->encrypted_id),
+                'close_url' => route('trips.close', $trip->encrypted_id),
+                'total_incomplete' => $openOrders->count(),
+                'status_breakdown' => $statusBreakdown,
+                'incomplete_orders' => $openOrders->map(fn ($order) => [
+                    'id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'status' => $order->status,
+                ])->values()->all(),
+            ]);
+        }
+
+        if ($forceClose && $openOrders->isNotEmpty()) {
+            $rules = [
+                'explanations' => ['required', 'array'],
+            ];
+            foreach ($openOrders as $order) {
+                $rules['explanations.'.$order->id] = ['required', 'string', 'min:10'];
+            }
+
+            $validated = $request->validate($rules, [
+                'explanations.required' => 'Please provide explanations for all incomplete orders.',
+                'explanations.*.required' => 'Each incomplete order needs an explanation before force closing.',
+                'explanations.*.min' => 'Each explanation should be at least 10 characters.',
+            ]);
+            $orderExplanations = $validated['explanations'] ?? [];
+        } else {
+            $orderExplanations = [];
+        }
+
+        if (! $forceClose && $openOrders->isNotEmpty()) {
+            $statusBreakdown = $openOrders
+                ->groupBy('status')
+                ->map(fn (Collection $items) => $items->count())
+                ->toArray();
+
+            return back()->with('trip_close_warning', [
+                'trip_number' => $trip->trip_number,
+                'trip_show_url' => route('trips.show', $trip->encrypted_id),
+                'close_url' => route('trips.close', $trip->encrypted_id),
+                'total_incomplete' => $openOrders->count(),
+                'status_breakdown' => $statusBreakdown,
+                'incomplete_orders' => $openOrders->map(fn ($order) => [
+                    'id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'status' => $order->status,
+                ])->values()->all(),
+            ]);
+        }
+
+        $this->tripService->close($trip, $request->user(), $forceClose, $orderExplanations);
 
         $this->auditLogService->record(
             action: 'trip.closed',
