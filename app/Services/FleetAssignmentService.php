@@ -109,9 +109,17 @@ class FleetAssignmentService
                 title: 'Fleet assignment created',
                 message: "Order {$order->order_number} has a new assigned leg and may require fuel requisition.",
                 type: 'order.leg.assigned',
-                meta: ['order_id' => $order->id, 'leg_id' => $leg->id, 'fleet_id' => $fleet->id],
+                meta: [
+                    'order_id' => $order->id,
+                    'leg_id' => $leg->id,
+                    'fleet_id' => $fleet->id,
+                    'order_number' => $order->order_number,
+                    'fleet_code' => $fleet->fleet_code,
+                ],
                 filter: fn (User $user) => $user->can('orders.view_all') || $order->created_by === $user->id || $user->can('fleet.view_all'),
-                excludeUserId: $actor->id
+                excludeUserId: $actor->id,
+                requiredAction: 'Create and submit fuel requisition for the assigned fleet.',
+                actionUrl: route('orders.show', $order->encrypted_id),
             );
 
             return $leg;

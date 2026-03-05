@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -60,5 +61,31 @@ class LogController extends Controller
             }
             fclose($handle);
         }, 'nmis-audit-logs-'.now()->format('Ymd-His').'.csv');
+    }
+
+    public function show(Request $request, AuditLog $log): JsonResponse
+    {
+        $this->authorize('view', $log);
+        $log->loadMissing('user:id,name,email');
+
+        return response()->json([
+            'id' => $log->id,
+            'action' => $log->action,
+            'created_at' => $log->created_at?->toIso8601String(),
+            'created_at_label' => $log->created_at?->format('d M Y, h:i:s A'),
+            'user' => $log->user ? [
+                'id' => $log->user->id,
+                'name' => $log->user->name,
+                'email' => $log->user->email,
+            ] : null,
+            'loggable' => [
+                'type' => $log->loggable_type,
+                'type_label' => class_basename((string) $log->loggable_type) ?: '-',
+                'id' => $log->loggable_id,
+            ],
+            'context' => $log->context ?: [],
+            'ip_address' => $log->ip_address,
+            'user_agent' => $log->user_agent,
+        ]);
     }
 }

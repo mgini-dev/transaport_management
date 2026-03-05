@@ -1,167 +1,215 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-                <h2 class="text-3xl font-bold gradient-text">Smart Operations Dashboard</h2>
-                <p class="mt-2 text-sm text-slate-500">Interactive analytics for trips, orders, requisitions, and approvals.</p>
+                <h2 class="text-3xl font-bold gradient-text">Operational Dashboard</h2>
+                <p class="mt-2 text-sm text-slate-500">
+                    Permission-based dashboard view. Each user sees only allowed modules, stats, and visualizations.
+                </p>
             </div>
-            <div class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-600 shadow-sm border border-slate-200">
-                <span class="relative flex h-2 w-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--nmis-accent)] opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-[var(--nmis-accent)]"></span>
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">
+                    Preset: {{ strtoupper($preset) }}
                 </span>
-                Dashboard Preset: {{ $preset }}
+                <span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">
+                    Permissions: {{ $roleInfo['permissions_total'] }}
+                </span>
+                @foreach($roleInfo['roles'] as $roleName)
+                    <span class="inline-flex items-center rounded-full border border-[var(--nmis-primary)]/20 bg-[var(--nmis-primary)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--nmis-primary)]">
+                        {{ $roleName }}
+                    </span>
+                @endforeach
             </div>
         </div>
     </x-slot>
 
     <div class="space-y-8">
-        <!-- Stats Grid -->
-        <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-5">
-            @php
-                $statsCards = [
-                    ['label' => 'Open Trips', 'value' => $stats['open_trips'], 'color' => 'primary', 'icon' => '🧭'],
-                    ['label' => 'Closed Trips', 'value' => $stats['closed_trips'], 'color' => 'secondary', 'icon' => '✅'],
-                    ['label' => 'Orders Active', 'value' => $stats['orders_in_progress'], 'color' => 'accent', 'icon' => '📦'],
-                    ['label' => 'Fuel Pending', 'value' => $stats['fuel_pending'], 'color' => 'primary', 'icon' => '⛽'],
-                    ['label' => 'Completion Rate', 'value' => $stats['completion_rate'] . '%', 'color' => 'secondary', 'icon' => '📈'],
-                ];
-            @endphp
+        <section>
+            <div class="mb-3 flex items-center justify-between">
+                <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">KPI Overview</h3>
+            </div>
+            @if(empty($statsCards))
+                <div class="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
+                    No dashboard KPI cards are available for your current permissions.
+                </div>
+            @else
+                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5">
+                    @foreach($statsCards as $card)
+                        @php
+                            $toneClasses = match($card['tone']) {
+                                'primary' => 'text-[var(--nmis-primary)] bg-[var(--nmis-primary)]/10 border-[var(--nmis-primary)]/20',
+                                'secondary' => 'text-[var(--nmis-secondary)] bg-[var(--nmis-secondary)]/10 border-[var(--nmis-secondary)]/20',
+                                'accent' => 'text-[var(--nmis-accent)] bg-[var(--nmis-accent)]/10 border-[var(--nmis-accent)]/20',
+                                'warning' => 'text-amber-700 bg-amber-100 border-amber-200',
+                                default => 'text-slate-700 bg-slate-100 border-slate-200',
+                            };
+                        @endphp
+                        <div class="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
+                            <div class="flex items-start justify-between gap-2">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $card['label'] }}</p>
+                                <span class="inline-flex h-6 w-6 items-center justify-center rounded-full border {{ $toneClasses }}">
+                                    <span class="h-2 w-2 rounded-full bg-current"></span>
+                                </span>
+                            </div>
+                            <p class="mt-3 text-3xl font-bold text-slate-900">{{ $card['value'] }}</p>
+                            <p class="mt-1 text-xs text-slate-500">{{ $card['hint'] }}</p>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </section>
 
-            @foreach($statsCards as $card)
-                <div class="group relative">
-                    <!-- Gradient Background Effect -->
-                    <div class="absolute -inset-0.5 bg-gradient-to-r from-[var(--nmis-{{ $card['color'] }})] to-[var(--nmis-{{ $card['color'] }})] opacity-0 group-hover:opacity-20 rounded-2xl blur transition-all duration-500"></div>
-                    
-                    <!-- Card -->
-                    <div class="relative rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                        <div class="flex items-center justify-between">
-                            <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider">{{ $card['label'] }}</p>
-                            <span class="rounded-xl bg-[color:rgba(27,59,134,0.08)] p-3 text-xl backdrop-blur-sm
-                                       {{ $card['color'] == 'primary' ? 'text-[var(--nmis-primary)]' : '' }}
-                                       {{ $card['color'] == 'secondary' ? 'text-[var(--nmis-secondary)]' : '' }}
-                                       {{ $card['color'] == 'accent' ? 'text-[var(--nmis-accent)]' : '' }}">
-                                {{ $card['icon'] }}
-                            </span>
-                        </div>
-                        <p class="mt-4 text-4xl font-bold text-slate-900">{{ $card['value'] }}</p>
-                        
-                        <!-- Sparkline (mini trend) -->
-                        <div class="mt-4 h-1 w-full bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full w-3/4 bg-gradient-to-r from-[var(--nmis-{{ $card['color'] }})] to-[var(--nmis-{{ $card['color'] }})] rounded-full"></div>
-                        </div>
+        <section>
+            <div class="mb-3 flex items-center justify-between">
+                <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">Allowed Modules</h3>
+                <span class="text-xs text-slate-400">{{ count($quickLinks) }} modules</span>
+            </div>
+            @if(empty($quickLinks))
+                <div class="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
+                    No module access is configured for this account.
+                </div>
+            @else
+                <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    @foreach($quickLinks as $link)
+                        <a href="{{ $link['route'] ?: '#' }}"
+                           class="group rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--nmis-primary)]/30 hover:shadow-lg">
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <p class="text-base font-semibold text-slate-900">{{ $link['label'] }}</p>
+                                    <p class="mt-1 text-sm text-slate-500">{{ $link['description'] }}</p>
+                                </div>
+                                <svg class="h-5 w-5 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--nmis-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </div>
+                            <div class="mt-4 border-t border-slate-100 pt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                {{ $link['metric'] }}
+                            </div>
+                        </a>
+                    @endforeach
+                </div>
+            @endif
+        </section>
+
+        <section class="grid gap-6 xl:grid-cols-2">
+            @if($widgets['trip_trend'])
+                <div class="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
+                    <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">Trips Created (Last 7 Days)</h3>
+                    <div class="mt-4 h-64">
+                        <canvas id="tripTrendChart"></canvas>
                     </div>
                 </div>
-            @endforeach
-        </div>
-
-        <!-- Charts Grid -->
-        <div class="grid gap-6 lg:grid-cols-2">
-            @if ($widgets['trip_trend'])
-            <div class="group rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm hover:shadow-xl transition-all duration-300">
-                <h3 class="mb-6 text-lg font-semibold text-slate-900 flex items-center gap-2">
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--nmis-primary)]/10 text-[var(--nmis-primary)]">📊</span>
-                    Trips Created - Last 7 Days
-                </h3>
-                <div class="h-64">
-                    <canvas id="tripTrendChart"></canvas>
-                </div>
-            </div>
             @endif
 
-            @if ($widgets['order_status'])
-            <div class="group rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm hover:shadow-xl transition-all duration-300">
-                <h3 class="mb-6 text-lg font-semibold text-slate-900 flex items-center gap-2">
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--nmis-secondary)]/10 text-[var(--nmis-secondary)]">🔄</span>
-                    Order Status Distribution
-                </h3>
-                <div class="h-64">
-                    <canvas id="orderStatusChart"></canvas>
+            @if($widgets['order_status'])
+                <div class="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
+                    <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">Order Status Distribution</h3>
+                    <div class="mt-4 h-64">
+                        <canvas id="orderStatusChart"></canvas>
+                    </div>
                 </div>
-            </div>
             @endif
 
-            @if ($widgets['fuel_spend'])
-            <div class="group rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm hover:shadow-xl transition-all duration-300">
-                <h3 class="mb-6 text-lg font-semibold text-slate-900 flex items-center gap-2">
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--nmis-accent)]/10 text-[var(--nmis-accent)]">⛽</span>
-                    Approved Fuel Spend - Last 6 Months
-                </h3>
-                <div class="h-64">
-                    <canvas id="fuelSpendChart"></canvas>
+            @if($widgets['fuel_spend'])
+                <div class="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
+                    <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">Approved Fuel Spend (Last 6 Months)</h3>
+                    <div class="mt-4 h-64">
+                        <canvas id="fuelSpendChart"></canvas>
+                    </div>
                 </div>
-            </div>
             @endif
 
-            @if ($widgets['approval_pipeline'])
-            <div class="group rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm hover:shadow-xl transition-all duration-300">
-                <h3 class="mb-6 text-lg font-semibold text-slate-900 flex items-center gap-2">
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--nmis-primary)]/10 text-[var(--nmis-primary)]">⚡</span>
-                    Approval Pipeline
-                </h3>
-                <div class="h-64">
-                    <canvas id="approvalPipelineChart"></canvas>
+            @if($widgets['approval_pipeline'])
+                <div class="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
+                    <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">Fuel Approval Pipeline</h3>
+                    <div class="mt-4 h-64">
+                        <canvas id="approvalPipelineChart"></canvas>
+                    </div>
                 </div>
-            </div>
             @endif
-        </div>
 
-        <!-- Notification Feed -->
-        <section class="rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden">
-            <div class="flex items-center justify-between bg-gradient-to-r from-slate-50 to-white px-6 py-4 border-b border-slate-200/60">
-                <h3 class="font-semibold text-slate-900 flex items-center gap-2">
-                    <span class="relative flex h-3 w-3">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--nmis-accent)] opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-3 w-3 bg-[var(--nmis-accent)]"></span>
-                    </span>
-                    Live Notification Feed
-                </h3>
-                <button id="refresh-notifications" 
-                        class="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition-all duration-200 group">
-                    <svg class="h-4 w-4 group-hover:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            @if($widgets['users_by_role'])
+                <div class="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm xl:col-span-2">
+                    <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">Users By Role</h3>
+                    <div class="mt-4 h-72">
+                        <canvas id="usersByRoleChart"></canvas>
+                    </div>
+                </div>
+            @endif
+        </section>
+
+        @if($adminOverview)
+            <section class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">Super Admin Overview</h3>
+                    <span class="text-xs font-semibold text-[var(--nmis-primary)]">Full System Scope</span>
+                </div>
+
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6">
+                    @foreach($adminOverview['totals'] as $label => $value)
+                        <div class="rounded-xl border border-slate-200/70 bg-white px-4 py-3 shadow-sm">
+                            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{{ str_replace('_', ' ', $label) }}</p>
+                            <p class="mt-2 text-2xl font-bold text-slate-900">{{ number_format((int) $value) }}</p>
+                        </div>
+                    @endforeach
+                </div>
+
+                <div class="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm">
+                    <div class="border-b border-slate-200/70 px-5 py-3">
+                        <h4 class="text-sm font-semibold text-slate-800">Recent Audit Activity</h4>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200 text-sm">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Time</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">User</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Action</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">IP</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                                @forelse($adminOverview['recent_logs'] as $log)
+                                    <tr>
+                                        <td class="px-4 py-3 text-slate-700">{{ $log->created_at?->format('d M Y H:i') ?? '-' }}</td>
+                                        <td class="px-4 py-3 text-slate-700">{{ $log->user?->name ?? 'System' }}</td>
+                                        <td class="px-4 py-3 font-medium text-slate-900">{{ $log->action }}</td>
+                                        <td class="px-4 py-3 text-slate-700">{{ $log->ip_address ?: '-' }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="px-4 py-6 text-center text-slate-500">No audit records available.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        <section class="rounded-2xl border border-slate-200/70 bg-white shadow-sm">
+            <div class="flex items-center justify-between border-b border-slate-200/70 px-5 py-3">
+                <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">Latest Notifications</h3>
+                <button id="refresh-notifications"
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-all hover:bg-slate-50">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                     </svg>
                     Refresh
                 </button>
             </div>
-            
             <div id="notification-list" class="divide-y divide-slate-100">
-                @forelse ($notifications as $notification)
-                    <div class="p-6 hover:bg-slate-50/80 transition-colors duration-200 group/item">
-                        <div class="flex items-start gap-4">
-                            <div class="flex-shrink-0">
-                                <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-[var(--nmis-primary)]/10 to-[var(--nmis-secondary)]/10 flex items-center justify-center">
-                                    <span class="text-lg">📢</span>
-                                </div>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="font-medium text-slate-900">{{ data_get($notification->data, 'title') }}</p>
-                                <p class="mt-1 text-sm text-slate-600">{{ data_get($notification->data, 'message') }}</p>
-                                <p class="mt-2 text-xs text-slate-400 flex items-center gap-1">
-                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                    {{ $notification->created_at->diffForHumans() }}
-                                </p>
-                            </div>
-                            <div class="opacity-0 group-hover/item:opacity-100 transition-opacity duration-200">
-                                <button class="text-slate-400 hover:text-slate-600">
-                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
+                @forelse($notifications as $notification)
+                    <div class="px-5 py-4">
+                        <p class="text-sm font-semibold text-slate-900">{{ data_get($notification->data, 'title', 'Notification') }}</p>
+                        <p class="mt-1 text-sm text-slate-600">{{ data_get($notification->data, 'message', '-') }}</p>
+                        <p class="mt-1 text-xs text-slate-400">{{ $notification->created_at?->diffForHumans() }}</p>
                     </div>
                 @empty
-                    <div class="p-12 text-center">
-                        <div class="inline-flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 mb-4">
-                            <svg class="h-8 w-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                            </svg>
-                        </div>
-                        <p class="text-sm text-slate-500">No notifications yet.</p>
-                        <p class="text-xs text-slate-400 mt-1">We'll notify you when something arrives</p>
+                    <div class="px-5 py-8 text-center text-sm text-slate-500">
+                        No notifications available.
                     </div>
                 @endforelse
             </div>
@@ -170,161 +218,115 @@
 
     @push('scripts')
     <script>
-        // Enhanced chart configurations with your existing color codes
-        const chartConfigs = {
+        const dashboardColors = {
             primary: '#1b3b86',
-            secondary: '#2a9d8f', 
+            secondary: '#2a9d8f',
             accent: '#6cb63f',
-            background: '#f8fafc'
+            warning: '#f59e0b',
+            slate: '#64748b'
         };
 
-        // Chart defaults with your colors
         Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
-        Chart.defaults.font.size = 12;
         Chart.defaults.color = '#64748b';
 
-        // Initialize charts with your existing data
-        document.addEventListener('DOMContentLoaded', function() {
-            // Trip Trend Chart (Line)
-            if (document.getElementById('tripTrendChart')) {
-                new Chart(document.getElementById('tripTrendChart'), {
+        document.addEventListener('DOMContentLoaded', function () {
+            const tripCanvas = document.getElementById('tripTrendChart');
+            if (tripCanvas) {
+                new Chart(tripCanvas, {
                     type: 'line',
                     data: {
                         labels: @json($charts['trip_trend_labels']),
                         datasets: [{
-                            label: 'Trips',
                             data: @json($charts['trip_trend_values']),
-                            borderColor: chartConfigs.primary,
-                            backgroundColor: 'rgba(27,59,134,0.08)',
-                            borderWidth: 3,
-                            pointBackgroundColor: chartConfigs.primary,
-                            pointBorderColor: 'white',
-                            pointBorderWidth: 2,
-                            pointRadius: 5,
-                            pointHoverRadius: 7,
-                            tension: 0.3,
+                            borderColor: dashboardColors.primary,
+                            backgroundColor: 'rgba(27,59,134,0.12)',
                             fill: true,
+                            tension: 0.35,
+                            borderWidth: 2.5,
+                            pointRadius: 4,
+                            pointHoverRadius: 5,
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                backgroundColor: '#0f172a',
-                                titleColor: '#f8fafc',
-                                bodyColor: '#e2e8f0',
-                                padding: 12,
-                                cornerRadius: 12,
-                                displayColors: false,
-                            }
-                        },
+                        plugins: { legend: { display: false } },
                         scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: { color: '#e2e8f0', drawBorder: false },
-                                border: { display: false }
-                            },
-                            x: {
-                                grid: { display: false },
-                                border: { display: false }
-                            }
+                            y: { beginAtZero: true, grid: { color: '#e2e8f0' }, border: { display: false } },
+                            x: { grid: { display: false }, border: { display: false } },
                         }
                     }
                 });
             }
 
-            // Order Status Chart (Doughnut)
-            if (document.getElementById('orderStatusChart')) {
-                new Chart(document.getElementById('orderStatusChart'), {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Created', 'Processing', 'Assigned', 'Completed'],
-                        datasets: [{
-                            data: [
-                                {{ $charts['order_status']['created'] }},
-                                {{ $charts['order_status']['processing'] }},
-                                {{ $charts['order_status']['assigned'] }},
-                                {{ $charts['order_status']['completed'] }},
-                            ],
-                            backgroundColor: [
-                                chartConfigs.primary,
-                                chartConfigs.secondary,
-                                chartConfigs.accent,
-                                '#94a3b8'
-                            ],
-                            borderWidth: 0,
-                            hoverOffset: 10,
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        cutout: '70%',
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: { usePointStyle: true, padding: 20 }
-                            }
-                        }
-                    }
-                });
-            }
-
-            // Fuel Spend Chart (Bar)
-            if (document.getElementById('fuelSpendChart')) {
-                new Chart(document.getElementById('fuelSpendChart'), {
+            const orderCanvas = document.getElementById('orderStatusChart');
+            if (orderCanvas) {
+                new Chart(orderCanvas, {
                     type: 'bar',
                     data: {
-                        labels: @json($charts['fuel_spend_labels']),
+                        labels: @json($charts['order_status_labels']),
                         datasets: [{
-                            label: 'Amount',
-                            data: @json($charts['fuel_spend_values']),
-                            backgroundColor: chartConfigs.secondary,
-                            borderRadius: 8,
-                            barPercentage: 0.6,
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: { color: '#e2e8f0' },
-                                border: { display: false }
-                            },
-                            x: {
-                                grid: { display: false },
-                                border: { display: false }
-                            }
-                        }
-                    }
-                });
-            }
-
-            // Approval Pipeline Chart (Polar Area)
-            if (document.getElementById('approvalPipelineChart')) {
-                new Chart(document.getElementById('approvalPipelineChart'), {
-                    type: 'polarArea',
-                    data: {
-                        labels: ['Submitted', 'Supervisor Approved', 'Accountant Approved', 'Rejected'],
-                        datasets: [{
-                            data: [
-                                {{ $charts['approval_pipeline']['submitted'] }},
-                                {{ $charts['approval_pipeline']['supervisor_approved'] }},
-                                {{ $charts['approval_pipeline']['accountant_approved'] }},
-                                {{ $charts['approval_pipeline']['rejected'] }},
-                            ],
+                            data: @json($charts['order_status_values']),
                             backgroundColor: [
                                 'rgba(27,59,134,0.85)',
                                 'rgba(42,157,143,0.85)',
                                 'rgba(108,182,63,0.85)',
-                                'rgba(239,68,68,0.85)'
+                                'rgba(245,158,11,0.85)',
+                                'rgba(239,68,68,0.85)',
+                                'rgba(15,23,42,0.75)',
+                            ],
+                            borderRadius: 8,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: '#e2e8f0' }, border: { display: false } },
+                            x: { grid: { display: false }, border: { display: false } },
+                        }
+                    }
+                });
+            }
+
+            const fuelCanvas = document.getElementById('fuelSpendChart');
+            if (fuelCanvas) {
+                new Chart(fuelCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: @json($charts['fuel_spend_labels']),
+                        datasets: [{
+                            data: @json($charts['fuel_spend_values']),
+                            backgroundColor: 'rgba(42,157,143,0.82)',
+                            borderRadius: 8,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: '#e2e8f0' }, border: { display: false } },
+                            x: { grid: { display: false }, border: { display: false } },
+                        }
+                    }
+                });
+            }
+
+            const approvalCanvas = document.getElementById('approvalPipelineChart');
+            if (approvalCanvas) {
+                new Chart(approvalCanvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: @json($charts['approval_pipeline_labels']),
+                        datasets: [{
+                            data: @json($charts['approval_pipeline_values']),
+                            backgroundColor: [
+                                'rgba(27,59,134,0.85)',
+                                'rgba(42,157,143,0.85)',
+                                'rgba(108,182,63,0.85)',
+                                'rgba(239,68,68,0.85)',
                             ],
                             borderWidth: 0,
                         }]
@@ -332,22 +334,42 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        cutout: '62%',
                         plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: { usePointStyle: true }
-                            }
+                            legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16 } }
+                        }
+                    }
+                });
+            }
+
+            const usersByRoleCanvas = document.getElementById('usersByRoleChart');
+            if (usersByRoleCanvas) {
+                new Chart(usersByRoleCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: @json($charts['users_by_role_labels']),
+                        datasets: [{
+                            data: @json($charts['users_by_role_values']),
+                            backgroundColor: 'rgba(27,59,134,0.82)',
+                            borderRadius: 8,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { beginAtZero: true, grid: { color: '#e2e8f0' }, border: { display: false } },
+                            y: { grid: { display: false }, border: { display: false } },
                         }
                     }
                 });
             }
         });
 
-        // Enhanced notification refresh with animation
-        document.getElementById('refresh-notifications')?.addEventListener('click', async function(e) {
+        document.getElementById('refresh-notifications')?.addEventListener('click', async function () {
             const button = this;
-            const icon = button.querySelector('svg');
-            icon.classList.add('animate-spin');
             button.disabled = true;
 
             try {
@@ -356,55 +378,33 @@
                 });
                 const payload = await response.json();
                 const holder = document.getElementById('notification-list');
+                const items = Array.isArray(payload.data) ? payload.data : [];
 
-                // Fade out
-                holder.style.opacity = '0';
-                
-                setTimeout(() => {
-                    if (!payload.data?.length) {
-                        holder.innerHTML = `
-                            <div class="p-12 text-center">
-                                <div class="inline-flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 mb-4">
-                                    <svg class="h-8 w-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                                    </svg>
-                                </div>
-                                <p class="text-sm text-slate-500">No notifications yet.</p>
-                                <p class="text-xs text-slate-400 mt-1">We'll notify you when something arrives</p>
-                            </div>
-                        `;
-                    } else {
-                        holder.innerHTML = payload.data.map(notification => `
-                            <div class="p-6 hover:bg-slate-50/80 transition-colors duration-200 group/item">
-                                <div class="flex items-start gap-4">
-                                    <div class="flex-shrink-0">
-                                        <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-[var(--nmis-primary)]/10 to-[var(--nmis-secondary)]/10 flex items-center justify-center">
-                                            <span class="text-lg">📢</span>
-                                        </div>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="font-medium text-slate-900">${notification.data?.title ?? ''}</p>
-                                        <p class="mt-1 text-sm text-slate-600">${notification.data?.message ?? ''}</p>
-                                        <p class="mt-2 text-xs text-slate-400">Just now</p>
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('');
-                    }
-                    
-                    // Fade in
-                    holder.style.opacity = '1';
-                }, 300);
-                
+                if (items.length === 0) {
+                    holder.innerHTML = '<div class="px-5 py-8 text-center text-sm text-slate-500">No notifications available.</div>';
+                    return;
+                }
+
+                holder.innerHTML = items.map(function (item) {
+                    const title = (item.data && item.data.title) ? item.data.title : 'Notification';
+                    const message = (item.data && item.data.message) ? item.data.message : '-';
+                    const createdAt = item.created_at ? item.created_at : 'Just now';
+
+                    return `
+                        <div class="px-5 py-4">
+                            <p class="text-sm font-semibold text-slate-900">${title}</p>
+                            <p class="mt-1 text-sm text-slate-600">${message}</p>
+                            <p class="mt-1 text-xs text-slate-400">${createdAt}</p>
+                        </div>
+                    `;
+                }).join('');
             } catch (error) {
-                console.error('Refresh failed:', error);
+                console.error('Failed to refresh notifications:', error);
             } finally {
-                setTimeout(() => {
-                    icon.classList.remove('animate-spin');
-                    button.disabled = false;
-                }, 500);
+                button.disabled = false;
             }
         });
     </script>
     @endpush
 </x-app-layout>
+

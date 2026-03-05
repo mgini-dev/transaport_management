@@ -71,9 +71,15 @@ class OrderService
                 title: 'New order requires processing',
                 message: "Order {$order->order_number} was created and is ready for processing.",
                 type: 'order.created',
-                meta: ['order_id' => $order->id, 'trip_id' => $order->trip_id],
+                meta: [
+                    'order_id' => $order->id,
+                    'trip_id' => $order->trip_id,
+                    'order_number' => $order->order_number,
+                ],
                 filter: fn (User $user) => $user->can('orders.view_all') || $order->created_by === $user->id,
-                excludeUserId: $actor->id
+                excludeUserId: $actor->id,
+                requiredAction: 'Review the order, process it, and assign fleet and driver.',
+                actionUrl: route('orders.show', $order->encrypted_id),
             );
 
             return $order;

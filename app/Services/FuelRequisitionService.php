@@ -136,14 +136,21 @@ class FuelRequisitionService
                 title: 'Fuel requisition needs supervisor review',
                 message: "Fuel requisition #{$requisition->id} has been submitted.",
                 type: 'fuel.submitted',
-                meta: ['requisition_id' => $requisition->id, 'order_id' => $requisition->order_id, 'requisition_type' => $requisition->requisition_type],
+                meta: [
+                    'requisition_id' => $requisition->id,
+                    'order_id' => $requisition->order_id,
+                    'requisition_type' => $requisition->requisition_type,
+                    'fleet_id' => $requisition->fleet_id,
+                ],
                 filter: function (User $user) use ($requisition): bool {
                     if ($requisition->order_id === null) {
                         return $user->can('fuel.view_all');
                     }
                     return $user->can('fuel.view_all') || $requisition->requested_by === $user->id || $user->can('orders.view_all');
                 },
-                excludeUserId: $actor->id
+                excludeUserId: $actor->id,
+                requiredAction: 'Review and approve or reject this requisition as supervisor.',
+                actionUrl: route('fuel.show', $requisition->encrypted_id),
             );
 
             return $requisition;
@@ -208,14 +215,21 @@ class FuelRequisitionService
                     }
                     return $user->can('fuel.view_all') || $requisition->requested_by === $user->id || $user->can('orders.view_all');
                 },
-                excludeUserId: $actor->id
+                excludeUserId: $actor->id,
+                requiredAction: 'Review and approve or reject this requisition as accountant.',
+                actionUrl: route('fuel.show', $requisition->encrypted_id),
             );
         } else {
             $requisition->requester?->notify(new \App\Notifications\WorkflowStageNotification(
                 title: 'Fuel requisition rejected by supervisor',
                 message: "Fuel requisition #{$requisition->id} was rejected by supervisor.",
                 type: 'fuel.supervisor_rejected',
-                meta: ['requisition_id' => $requisition->id, 'order_id' => $requisition->order_id]
+                meta: [
+                    'requisition_id' => $requisition->id,
+                    'order_id' => $requisition->order_id,
+                    'required_action' => 'Review supervisor remarks and submit another requisition if needed.',
+                    'action_url' => route('fuel.show', $requisition->encrypted_id),
+                ]
             ));
         }
 
@@ -239,7 +253,12 @@ class FuelRequisitionService
             title: 'Fuel requisition accounting decision',
             message: "Fuel requisition #{$requisition->id} is now {$requisition->status}.",
             type: 'fuel.accountant_decision',
-            meta: ['requisition_id' => $requisition->id, 'order_id' => $requisition->order_id]
+            meta: [
+                'requisition_id' => $requisition->id,
+                'order_id' => $requisition->order_id,
+                'required_action' => 'Open requisition details and proceed with the next order workflow step.',
+                'action_url' => route('fuel.show', $requisition->encrypted_id),
+            ]
         ));
 
         if ($approved && $requisition->order_id) {

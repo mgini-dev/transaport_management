@@ -129,6 +129,8 @@
         </div>
     </div>
 
+    @include('layouts.partials.ui-feedback')
+
     @stack('scripts')
     <div id="notification-toast-container" class="fixed right-4 top-20 z-[80] space-y-3"></div>
     

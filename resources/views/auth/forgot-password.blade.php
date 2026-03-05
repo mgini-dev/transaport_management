@@ -13,7 +13,7 @@
         <div class="text-center mb-8">
             <h2 class="text-2xl font-bold text-gray-800">Forgot Password?</h2>
             <p class="text-gray-600 mt-2 text-sm leading-relaxed">
-                {{ __('No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.') }}
+                Enter your registered email address. If valid, we will send a One-Time Password (OTP) for secure reset.
             </p>
         </div>
         
@@ -73,7 +73,7 @@
                         <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
-                        {{ __('Send Reset Link') }}
+                        Send OTP
                     </span>
                 </button>
                 

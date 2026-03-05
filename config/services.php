@@ -42,4 +42,29 @@ return [
         'osrm_url' => env('DISTANCE_OSRM_URL', 'https://router.project-osrm.org'),
     ],
 
+    'system_email' => [
+        'enabled' => (bool) env('SYSTEM_EMAIL_ENABLED', false),
+        'address' => env('SYSTEM_EMAIL_ADDRESS'),
+        'password' => env('SYSTEM_EMAIL_PASSWORD'),
+        'from_name' => env('SYSTEM_EMAIL_FROM_NAME', env('APP_NAME', 'NMIS')),
+        'smtp' => [
+            'host' => env('SYSTEM_EMAIL_SMTP_HOST', env('MAIL_HOST', '127.0.0.1')),
+            'port' => (int) env('SYSTEM_EMAIL_SMTP_PORT', env('MAIL_PORT', 2525)),
+            'scheme' => env('SYSTEM_EMAIL_SMTP_SCHEME', env('MAIL_SCHEME', 'smtp')),
+            'encryption' => env('SYSTEM_EMAIL_SMTP_ENCRYPTION', 'ssl'),
+        ],
+        'incoming' => [
+            'imap' => [
+                'host' => env('SYSTEM_EMAIL_IMAP_HOST'),
+                'port' => (int) env('SYSTEM_EMAIL_IMAP_PORT', 993),
+                'encryption' => env('SYSTEM_EMAIL_IMAP_ENCRYPTION', 'ssl'),
+            ],
+            'pop' => [
+                'host' => env('SYSTEM_EMAIL_POP_HOST'),
+                'port' => (int) env('SYSTEM_EMAIL_POP_PORT', 995),
+                'encryption' => env('SYSTEM_EMAIL_POP_ENCRYPTION', 'ssl'),
+            ],
+        ],
+    ],
+
 ];

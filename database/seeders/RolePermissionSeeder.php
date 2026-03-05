@@ -45,6 +45,8 @@ class RolePermissionSeeder extends Seeder
             'fuel.create',
             'fuel.approve.supervisor',
             'fuel.approve.accounting',
+            'hr.employees.view',
+            'hr.employees.manage',
             'admin.users.manage',
             'admin.roles.manage',
             'admin.logs.view',
@@ -61,6 +63,7 @@ class RolePermissionSeeder extends Seeder
             'Fuel Officer' => ['orders.view', 'orders.view_all', 'orders.view_distance', 'fuel.view', 'fuel.view_all', 'fuel.create'],
             'Approver' => ['trips.view', 'trips.view_all', 'orders.view', 'orders.view_all', 'fuel.view', 'fuel.view_all', 'fuel.approve.supervisor'],
             'Accountant' => ['trips.view', 'trips.view_all', 'orders.view', 'orders.view_all', 'fuel.view', 'fuel.view_all', 'fuel.approve.accounting'],
+            'HR Officer' => ['hr.employees.view', 'hr.employees.manage'],
             'Chief Admin' => $permissions,
         ];
 

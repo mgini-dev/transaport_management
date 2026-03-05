@@ -1,4 +1,11 @@
 <header class="sticky top-0 z-20 bg-white/90 backdrop-blur-xl border-b border-slate-200/60 px-4 sm:px-6 lg:px-8 py-3">
+    @php
+        $currentUser = auth()->user();
+        $userPhotoUrl = $currentUser?->employee_photo_url;
+        $userName = (string) ($currentUser?->name ?? '');
+        $singleInitial = strtoupper(substr($userName, 0, 1));
+        $doubleInitial = strtoupper(substr($userName, 0, 2));
+    @endphp
     <div class="flex items-center justify-between">
         <!-- Left section -->
         <div class="flex items-center gap-4">
@@ -59,12 +66,18 @@
                 <button type="button" 
                         class="flex items-center gap-2 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-800 hover:from-slate-200 hover:to-slate-300 transition-all duration-200 group"
                         @click="profileOpen = !profileOpen">
-                    <span class="hidden sm:inline">{{ auth()->user()->name }}</span>
-                    <div class="h-6 w-6 rounded-full bg-gradient-to-br from-[var(--nmis-primary)] to-[var(--nmis-secondary)] flex items-center justify-center">
-                        <span class="text-xs font-bold text-white">
-                            {{ substr(auth()->user()->name, 0, 1) }}
-                        </span>
-                    </div>
+                    <span class="hidden sm:inline">{{ $currentUser?->name }}</span>
+                    @if($userPhotoUrl)
+                        <img src="{{ $userPhotoUrl }}"
+                             alt="{{ $currentUser?->name }}"
+                             class="h-6 w-6 rounded-full object-cover ring-1 ring-slate-300">
+                    @else
+                        <div class="h-6 w-6 rounded-full bg-gradient-to-br from-[var(--nmis-primary)] to-[var(--nmis-secondary)] flex items-center justify-center">
+                            <span class="text-xs font-bold text-white">
+                                {{ $singleInitial }}
+                            </span>
+                        </div>
+                    @endif
                     <svg class="h-4 w-4 text-slate-500 transition-transform duration-200" :class="{ 'rotate-180': profileOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                     </svg>
@@ -83,14 +96,20 @@
                         <!-- User info -->
                         <div class="bg-gradient-to-br from-slate-50 to-white p-4 border-b border-slate-200/60">
                             <div class="flex items-center gap-3">
-                                <div class="h-12 w-12 rounded-full bg-gradient-to-br from-[var(--nmis-primary)] to-[var(--nmis-secondary)] flex items-center justify-center shadow-lg">
-                                    <span class="text-lg font-bold text-white">
-                                        {{ substr(auth()->user()->name, 0, 2) }}
-                                    </span>
-                                </div>
+                                @if($userPhotoUrl)
+                                    <img src="{{ $userPhotoUrl }}"
+                                         alt="{{ $currentUser?->name }}"
+                                         class="h-12 w-12 rounded-full object-cover shadow-lg ring-2 ring-white">
+                                @else
+                                    <div class="h-12 w-12 rounded-full bg-gradient-to-br from-[var(--nmis-primary)] to-[var(--nmis-secondary)] flex items-center justify-center shadow-lg">
+                                        <span class="text-lg font-bold text-white">
+                                            {{ $doubleInitial }}
+                                        </span>
+                                    </div>
+                                @endif
                                 <div>
-                                    <p class="font-semibold text-slate-900">{{ auth()->user()->name }}</p>
-                                    <p class="text-xs text-slate-500">{{ auth()->user()->email }}</p>
+                                    <p class="font-semibold text-slate-900">{{ $currentUser?->name }}</p>
+                                    <p class="text-xs text-slate-500">{{ $currentUser?->email }}</p>
                                 </div>
                             </div>
                             <div class="mt-3 flex flex-wrap gap-1">

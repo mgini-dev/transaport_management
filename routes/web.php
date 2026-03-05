@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DriverController;
 use App\Http\Controllers\FleetController;
 use App\Http\Controllers\FuelRequisitionController;
+use App\Http\Controllers\Hr\EmployeeController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderLegController;
@@ -73,6 +74,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/drivers/{driverId}', [DriverController::class, 'update'])->middleware('permission:drivers.update')->name('drivers.update');
     Route::delete('/drivers/{driverId}', [DriverController::class, 'destroy'])->middleware('permission:drivers.delete')->name('drivers.destroy');
 
+    Route::prefix('hr')->name('hr.')->middleware('permission:hr.employees.view|hr.employees.manage')->group(function () {
+        Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
+        Route::get('/employees/create', [EmployeeController::class, 'create'])->middleware('permission:hr.employees.manage')->name('employees.create');
+        Route::post('/employees', [EmployeeController::class, 'store'])->middleware('permission:hr.employees.manage')->name('employees.store');
+        Route::get('/employees/{employeeId}', [EmployeeController::class, 'show'])->name('employees.show');
+        Route::get('/employees/{employeeId}/edit', [EmployeeController::class, 'edit'])->middleware('permission:hr.employees.manage')->name('employees.edit');
+        Route::put('/employees/{employeeId}', [EmployeeController::class, 'update'])->middleware('permission:hr.employees.manage')->name('employees.update');
+        Route::post('/employees/{employeeId}/status', [EmployeeController::class, 'updateStatus'])->middleware('permission:hr.employees.manage')->name('employees.status.update');
+        Route::get('/employees/{employeeId}/photo', [EmployeeController::class, 'photo'])->name('employees.photo');
+        Route::get('/employees/{employeeId}/document/download', [EmployeeController::class, 'downloadFullDocument'])->name('employees.document.download');
+        Route::get('/employees/{employeeId}/cv/preview', [EmployeeController::class, 'previewCv'])->name('employees.cv.preview');
+        Route::get('/employees/{employeeId}/cv/download', [EmployeeController::class, 'downloadCv'])->name('employees.cv.download');
+        Route::get('/employees/{employeeId}/certificates/{certificateId}/preview', [EmployeeController::class, 'previewCertificate'])->name('employees.certificates.preview');
+        Route::get('/employees/{employeeId}/certificates/{certificateId}/download', [EmployeeController::class, 'downloadCertificate'])->name('employees.certificates.download');
+        Route::delete('/employees/{employeeId}/certificates/{certificateId}', [EmployeeController::class, 'destroyCertificate'])->middleware('permission:hr.employees.manage')->name('employees.certificates.destroy');
+    });
+
     Route::middleware('permission:fuel.view|fuel.create')->group(function () {
         Route::get('/fuel', [FuelRequisitionController::class, 'index'])->name('fuel.index');
     });
@@ -88,6 +106,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('admin')->name('admin.')->middleware('permission:admin.users.manage')->group(function () {
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::get('/users/export/csv', [UserController::class, 'exportCsv'])->name('users.export.csv');
+        Route::get('/users/employees/search', [UserController::class, 'searchEmployees'])->name('users.employees.search');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     });
@@ -103,6 +122,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('admin')->name('admin.')->middleware('permission:admin.logs.view')->group(function () {
         Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
         Route::get('/logs/export/csv', [LogController::class, 'exportCsv'])->name('logs.export.csv');
+        Route::get('/logs/{log}', [LogController::class, 'show'])->name('logs.show');
     });
 
     Route::prefix('admin')->name('admin.')->middleware('permission:admin.dashboard.view_all')->group(function () {
@@ -113,6 +133,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::get('/profile/photo', [ProfileController::class, 'photo'])->name('profile.photo');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });

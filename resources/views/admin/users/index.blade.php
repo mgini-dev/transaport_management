@@ -30,9 +30,9 @@
         </div>
     </x-slot>
 
-    <div class="space-y-8" 
-         x-data="{ openUserModal: false }" 
-         @open-user-modal.window="openUserModal = true">
+    <div class="space-y-8"
+         x-data="userCreateModal('{{ route('admin.users.employees.search') }}')"
+         @open-user-modal.window="openCreateModal()">
         
         <!-- Create User Modal -->
         @can('users.create')
@@ -47,7 +47,7 @@
                  x-transition:leave-end="opacity-0">
                 
                 <!-- Backdrop -->
-                <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" @click="openUserModal = false"></div>
+                <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" @click="closeCreateModal()"></div>
 
                 <!-- Modal Panel -->
                 <div class="flex min-h-full items-center justify-center p-4">
@@ -73,7 +73,7 @@
                                     <p class="text-xs text-slate-500">Add a new user to the system</p>
                                 </div>
                             </div>
-                            <button @click="openUserModal = false" class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-500 transition-colors">
+                            <button @click="closeCreateModal()" class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-500 transition-colors">
                                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>
@@ -81,19 +81,72 @@
                         </div>
 
                         <!-- Modal Form -->
-                        <form method="POST" action="{{ route('admin.users.store') }}" class="p-6">
+                        <form method="POST"
+                              action="{{ route('admin.users.store') }}"
+                              class="p-6"
+                              x-ref="createUserForm"
+                              @submit="if (!selectedEmployeeId) { $event.preventDefault(); employeeSearchError = 'Please search and select an active employee first.'; }">
                             @csrf
                             <div class="grid gap-5 md:grid-cols-2">
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                                        Search Active Employee By Number Or Name <span class="text-rose-500">*</span>
+                                    </label>
+                                    <input type="text"
+                                           x-model="employeeSearch"
+                                           @input.debounce.350ms="searchEmployees()"
+                                           @focus="if(employeeSearch.length >= 2) searchEmployees()"
+                                           class="w-full rounded-xl border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
+                                           placeholder="e.g. NEX0001 or John">
+
+                                    <div x-show="isSearching" x-cloak class="mt-2 text-xs text-slate-500">
+                                        Searching active employees...
+                                    </div>
+
+                                    <div x-show="employeeResults.length > 0" x-cloak class="mt-2 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-2 max-h-56 overflow-auto">
+                                        <template x-for="employee in employeeResults" :key="employee.id">
+                                            <button type="button"
+                                                    @click="selectEmployee(employee)"
+                                                    class="flex w-full items-start justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left hover:border-[var(--nmis-primary)]/40 hover:bg-[var(--nmis-primary)]/5 transition-all">
+                                                <span>
+                                                    <span class="block text-sm font-semibold text-slate-900" x-text="employee.full_name"></span>
+                                                    <span class="mt-0.5 block text-xs text-slate-500" x-text="employee.employee_number"></span>
+                                                </span>
+                                                <span class="text-xs text-slate-600 break-all text-right" x-text="employee.email"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+
+                                    <p x-show="showEmployeeNotFound" x-cloak class="mt-2 text-xs font-medium text-rose-600">
+                                        Employee not found. Search by valid employee number or name (active employees only).
+                                    </p>
+                                    <p x-show="employeeSearchError" x-cloak class="mt-2 text-xs font-medium text-rose-600" x-text="employeeSearchError"></p>
+
+                                    <div x-show="selectedEmployeeId" x-cloak class="mt-3 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+                                        <div class="text-xs text-emerald-800">
+                                            <p class="font-semibold">Selected Employee</p>
+                                            <p><span x-text="selectedEmployeeNumber"></span> - <span x-text="selectedEmployeeName"></span></p>
+                                        </div>
+                                        <button type="button"
+                                                @click="clearSelectedEmployee()"
+                                                class="rounded-md border border-emerald-300 px-2 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors">
+                                            Clear
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <!-- Full Name -->
                                 <div class="md:col-span-2">
                                     <label class="block text-sm font-medium text-slate-700 mb-1">
                                         Full Name <span class="text-rose-500">*</span>
                                     </label>
-                                    <input type="text" 
-                                           name="name" 
-                                           required 
-                                           class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
-                                           placeholder="John Doe">
+                                    <input type="text"
+                                           name="name"
+                                           x-model="selectedEmployeeName"
+                                           required
+                                           readonly
+                                           class="w-full rounded-xl border-slate-300 bg-slate-100 px-4 py-2.5 text-sm text-slate-700 focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
+                                           placeholder="Select employee from search above">
                                 </div>
 
                                 <!-- Email -->
@@ -101,11 +154,13 @@
                                     <label class="block text-sm font-medium text-slate-700 mb-1">
                                         Email Address <span class="text-rose-500">*</span>
                                     </label>
-                                    <input type="email" 
-                                           name="email" 
-                                           required 
-                                           class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
-                                           placeholder="john@example.com">
+                                    <input type="email"
+                                           name="email"
+                                           x-model="selectedEmployeeEmail"
+                                           required
+                                           readonly
+                                           class="w-full rounded-xl border-slate-300 bg-slate-100 px-4 py-2.5 text-sm text-slate-700 focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
+                                           placeholder="Auto-filled from selected employee">
                                 </div>
 
                                 <!-- Password -->
@@ -171,13 +226,14 @@
 
                             <!-- Form Actions -->
                             <div class="mt-6 flex items-center justify-end gap-3 border-t border-slate-200/60 pt-4">
-                                <button type="button" 
-                                        @click="openUserModal = false"
+                                <button type="button"
+                                        @click="closeCreateModal()"
                                         class="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-all">
                                     Cancel
                                 </button>
-                                <button type="submit" 
-                                        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--nmis-primary)] to-[var(--nmis-secondary)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--nmis-primary)]/20 hover:shadow-xl hover:scale-105 transition-all">
+                                <button type="submit"
+                                        :disabled="!selectedEmployeeId || isSearching"
+                                        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--nmis-primary)] to-[var(--nmis-secondary)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--nmis-primary)]/20 hover:shadow-xl hover:scale-105 transition-all disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 disabled:hover:shadow-lg">
                                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                                     </svg>
@@ -267,7 +323,7 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
                         @forelse ($users as $user)
-                            <tr x-data="{ openEdit: false }" class="hover:bg-slate-50/80 transition-colors duration-200 group">
+                            <tr class="hover:bg-slate-50/80 transition-colors duration-200 group">
                                 <td class="whitespace-nowrap px-6 py-4">
                                     <div class="flex items-center">
                                         <div class="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-[var(--nmis-primary)]/10 to-[var(--nmis-secondary)]/10 flex items-center justify-center">
@@ -314,8 +370,8 @@
                                     @endif
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4 text-right">
-                                    <button type="button" 
-                                            @click="openEdit = !openEdit" 
+                                    <button type="button"
+                                            @click="toggleEditRow({{ $user->id }})"
                                             class="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-[var(--nmis-primary)] hover:text-white transition-all">
                                         <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -323,33 +379,35 @@
                                         Edit
                                     </button>
                                 </td>
+                            </tr>
 
-                                <!-- Edit Row (hidden by default) -->
-                                <tr x-show="openEdit" 
-                                    x-transition:enter="transition ease-out duration-200"
-                                    x-transition:enter-start="opacity-0"
-                                    x-transition:enter-end="opacity-100"
-                                    x-transition:leave="transition ease-in duration-150"
-                                    x-transition:leave-start="opacity-100"
-                                    x-transition:leave-end="opacity-0"
-                                    class="bg-slate-50/50">
-                                    <td colspan="5" class="px-6 py-4">
-                                        <div class="rounded-xl border border-slate-200 bg-white p-5">
-                                            <div class="flex items-center justify-between mb-4">
-                                                <h4 class="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                                                    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--nmis-secondary)]/10">
-                                                        <svg class="h-3 w-3 text-[var(--nmis-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                                        </svg>
-                                                    </span>
-                                                    Edit User: {{ $user->name }}
-                                                </h4>
-                                                <button @click="openEdit = false" class="text-slate-400 hover:text-slate-600">
-                                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            <!-- Edit Row (hidden by default) -->
+                            <tr x-cloak
+                                x-show="editingUserId === {{ $user->id }}"
+                                x-transition:enter="transition ease-out duration-200"
+                                x-transition:enter-start="opacity-0"
+                                x-transition:enter-end="opacity-100"
+                                x-transition:leave="transition ease-in duration-150"
+                                x-transition:leave-start="opacity-100"
+                                x-transition:leave-end="opacity-0"
+                                class="bg-slate-50/50">
+                                <td colspan="5" class="px-6 py-4">
+                                    <div class="rounded-xl border border-slate-200 bg-white p-5">
+                                        <div class="flex items-center justify-between mb-4">
+                                            <h4 class="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                                                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--nmis-secondary)]/10">
+                                                    <svg class="h-3 w-3 text-[var(--nmis-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                                     </svg>
-                                                </button>
-                                            </div>
+                                                </span>
+                                                Edit User: {{ $user->name }}
+                                            </h4>
+                                            <button @click="closeEditRow()" class="text-slate-400 hover:text-slate-600">
+                                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                </svg>
+                                            </button>
+                                        </div>
 
                                             <form method="POST" action="{{ route('admin.users.update', $user) }}" class="grid gap-4 md:grid-cols-2">
                                                 @csrf
@@ -415,8 +473,8 @@
 
                                                 <!-- Form Actions -->
                                                 <div class="md:col-span-2 flex items-center justify-end gap-2 mt-2">
-                                                    <button type="button" 
-                                                            @click="openEdit = false"
+                                                    <button type="button"
+                                                            @click="closeEditRow()"
                                                             class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-all">
                                                         Cancel
                                                     </button>
@@ -430,8 +488,7 @@
                                                 </div>
                                             </form>
                                         </div>
-                                    </td>
-                                </tr>
+                                </td>
                             </tr>
                         @empty
                             <tr>
@@ -518,7 +575,125 @@
 
     @push('scripts')
     <script>
-        // Auto-hide success message after 5 seconds
+        function userCreateModal(searchEndpoint) {
+            return {
+                openUserModal: false,
+                employeeSearch: '',
+                employeeResults: [],
+                selectedEmployeeId: null,
+                selectedEmployeeName: '',
+                selectedEmployeeEmail: '',
+                selectedEmployeeNumber: '',
+                isSearching: false,
+                showEmployeeNotFound: false,
+                employeeSearchError: '',
+                abortController: null,
+                editingUserId: null,
+                openCreateModal() {
+                    this.resetEmployeeSelection();
+                    this.openUserModal = true;
+                },
+                closeCreateModal() {
+                    this.openUserModal = false;
+                    this.resetEmployeeSelection();
+                },
+                toggleEditRow(userId) {
+                    this.editingUserId = this.editingUserId === userId ? null : userId;
+                },
+                closeEditRow() {
+                    this.editingUserId = null;
+                },
+                resetEmployeeSelection() {
+                    this.employeeSearch = '';
+                    this.employeeResults = [];
+                    this.selectedEmployeeId = null;
+                    this.selectedEmployeeName = '';
+                    this.selectedEmployeeEmail = '';
+                    this.selectedEmployeeNumber = '';
+                    this.showEmployeeNotFound = false;
+                    this.employeeSearchError = '';
+                    if (this.abortController) {
+                        this.abortController.abort();
+                    }
+                    this.abortController = null;
+                },
+                clearSelectedEmployee() {
+                    this.selectedEmployeeId = null;
+                    this.selectedEmployeeName = '';
+                    this.selectedEmployeeEmail = '';
+                    this.selectedEmployeeNumber = '';
+                    this.employeeSearchError = '';
+                    this.showEmployeeNotFound = false;
+                },
+                selectEmployee(employee) {
+                    this.selectedEmployeeId = employee.id;
+                    this.selectedEmployeeName = employee.full_name;
+                    this.selectedEmployeeEmail = employee.email;
+                    this.selectedEmployeeNumber = employee.employee_number;
+                    this.employeeSearch = employee.employee_number + ' - ' + employee.full_name;
+                    this.employeeResults = [];
+                    this.showEmployeeNotFound = false;
+                    this.employeeSearchError = '';
+                },
+                async searchEmployees() {
+                    const query = this.employeeSearch.trim();
+                    this.employeeSearchError = '';
+                    const selectedLabel = this.selectedEmployeeNumber && this.selectedEmployeeName
+                        ? (this.selectedEmployeeNumber + ' - ' + this.selectedEmployeeName)
+                        : '';
+
+                    if (this.selectedEmployeeId && query !== selectedLabel) {
+                        this.selectedEmployeeId = null;
+                        this.selectedEmployeeName = '';
+                        this.selectedEmployeeEmail = '';
+                        this.selectedEmployeeNumber = '';
+                    }
+
+                    if (query.length < 2) {
+                        this.employeeResults = [];
+                        this.showEmployeeNotFound = false;
+                        return;
+                    }
+
+                    if (this.abortController) {
+                        this.abortController.abort();
+                    }
+
+                    this.abortController = new AbortController();
+                    this.isSearching = true;
+                    this.showEmployeeNotFound = false;
+
+                    try {
+                        const response = await fetch(searchEndpoint + '?q=' + encodeURIComponent(query), {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                            signal: this.abortController.signal,
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Employee search failed');
+                        }
+
+                        const payload = await response.json();
+                        this.employeeResults = Array.isArray(payload.data) ? payload.data : [];
+                        this.showEmployeeNotFound = this.employeeResults.length === 0;
+                    } catch (error) {
+                        if (error.name === 'AbortError') {
+                            return;
+                        }
+                        this.employeeResults = [];
+                        this.showEmployeeNotFound = false;
+                        this.employeeSearchError = 'Unable to search employees right now. Please try again.';
+                    } finally {
+                        this.isSearching = false;
+                    }
+                },
+            };
+        }
+
         const successMessage = document.querySelector('.animate-slide-down');
         if (successMessage) {
             setTimeout(() => {

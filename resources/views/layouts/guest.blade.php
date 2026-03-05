@@ -61,5 +61,6 @@
             <p>© {{ date('Y') }} Nexus NMIS. All rights reserved.</p>
         </div>
     </div>
+    @include('layouts.partials.ui-feedback')
 </body>
 </html>

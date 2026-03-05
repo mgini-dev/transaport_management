@@ -29,6 +29,7 @@
                     ['route' => 'fleet.*', 'name' => 'truck', 'label' => 'Fleet', 'permission' => 'fleet.view'],
                     ['route' => 'drivers.*', 'name' => 'id', 'label' => 'Drivers', 'permission' => 'drivers.view'],
                     ['route' => 'fuel.*', 'name' => 'fuel', 'label' => 'Fuel Requisitions', 'permission' => 'fuel.view'],
+                    ['route' => 'hr.employees.*', 'name' => 'users', 'label' => 'HR Employees', 'permission' => 'hr.employees.view|hr.employees.manage'],
                    // ['route' => 'notifications.*', 'name' => 'bell', 'label' => 'Notifications', 'permission' => null],
                     ['route' => 'admin.users.*', 'name' => 'shield', 'label' => 'Admin Users', 'permission' => 'admin.users.manage'],
                     ['route' => 'admin.roles.*', 'name' => 'lock', 'label' => 'Roles & Permissions', 'permission' => 'admin.roles.manage'],
@@ -38,7 +39,14 @@
             @endphp
 
             @foreach($navItems as $item)
-                @if($item['permission'] ? Gate::allows($item['permission']) : true)
+                @php
+                    $canSeeItem = true;
+                    if (!empty($item['permission'])) {
+                        $permissions = explode('|', (string) $item['permission']);
+                        $canSeeItem = collect($permissions)->contains(fn ($permission) => Gate::allows(trim($permission)));
+                    }
+                @endphp
+                @if($canSeeItem)
                     <li>
                         <a href="{{ route(str_replace('.*', '.index', $item['route'])) }}" 
                            class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 group relative

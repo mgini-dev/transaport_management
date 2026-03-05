@@ -155,6 +155,7 @@
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">User</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Action</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Context / Details</th>
+                            <th scope="col" class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">View</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
@@ -207,52 +208,58 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4">
-                                    @if(!empty($log->context))
-                                        <div x-data="{ open: false }" class="relative">
-                                            <!-- Preview -->
-                                            <div class="flex items-center gap-2 cursor-pointer" @click="open = !open">
-                                                <span class="text-sm text-slate-600 truncate max-w-xs">
-                                                    {{ Str::limit(json_encode($log->context), 50) }}
-                                                </span>
-                                                <svg class="h-4 w-4 text-slate-400 transition-transform duration-200" 
-                                                     :class="{ 'rotate-180': open }" 
-                                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                                </svg>
+                                    @php
+                                        $contextData = is_array($log->context) ? $log->context : [];
+                                        $contextPreview = collect($contextData)->take(3);
+                                    @endphp
+                                    @if(!empty($contextData))
+                                        <div class="max-w-md space-y-2">
+                                            <div class="flex flex-wrap gap-1.5">
+                                                @foreach($contextPreview as $ctxKey => $ctxValue)
+                                                    @php
+                                                        $contextLabel = ucwords(str_replace(['_', '-'], ' ', (string) $ctxKey));
+                                                        if (is_array($ctxValue)) {
+                                                            $contextValueLabel = count($ctxValue).' item'.(count($ctxValue) === 1 ? '' : 's');
+                                                        } elseif (is_bool($ctxValue)) {
+                                                            $contextValueLabel = $ctxValue ? 'Yes' : 'No';
+                                                        } elseif (is_null($ctxValue) || $ctxValue === '') {
+                                                            $contextValueLabel = 'N/A';
+                                                        } else {
+                                                            $contextValueLabel = Str::limit((string) $ctxValue, 26);
+                                                        }
+                                                    @endphp
+                                                    <span class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700">
+                                                        <span class="text-slate-500">{{ $contextLabel }}:</span>
+                                                        <span class="font-semibold text-slate-800">{{ $contextValueLabel }}</span>
+                                                    </span>
+                                                @endforeach
                                             </div>
-                                            
-                                            <!-- Expanded Context -->
-                                            <div x-show="open" 
-                                                 x-transition:enter="transition ease-out duration-200"
-                                                 x-transition:enter-start="opacity-0 scale-95"
-                                                 x-transition:enter-end="opacity-100 scale-100"
-                                                 x-transition:leave="transition ease-in duration-150"
-                                                 x-transition:leave-start="opacity-100 scale-100"
-                                                 x-transition:leave-end="opacity-0 scale-95"
-                                                 class="absolute z-10 mt-2 w-96 rounded-xl border border-slate-200 bg-white p-4 shadow-xl">
-                                                <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Context Details</h4>
-                                                <div class="space-y-2 max-h-96 overflow-y-auto">
-                                                    @foreach(collect($log->context)->toArray() as $key => $value)
-                                                        <div class="border-b border-slate-100 pb-2 last:border-0">
-                                                            <span class="text-xs font-medium text-slate-500 block mb-1">{{ $key }}:</span>
-                                                            @if(is_array($value) || is_object($value))
-                                                                <pre class="text-xs bg-slate-50 p-2 rounded-lg overflow-x-auto">{{ json_encode($value, JSON_PRETTY_PRINT) }}</pre>
-                                                            @else
-                                                                <span class="text-sm text-slate-900">{{ $value }}</span>
-                                                            @endif
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            </div>
+                                            @if(count($contextData) > 3)
+                                                <p class="text-xs text-slate-400">+{{ count($contextData) - 3 }} more field(s)</p>
+                                            @else
+                                                <p class="text-xs text-slate-400">{{ count($contextData) }} field(s)</p>
+                                            @endif
                                         </div>
                                     @else
                                         <span class="text-sm text-slate-400">No additional context</span>
                                     @endif
                                 </td>
+                                <td class="whitespace-nowrap px-6 py-4 text-right">
+                                    <button type="button"
+                                            class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[var(--nmis-primary)] hover:text-[var(--nmis-primary)] transition-all"
+                                            data-log-view-url="{{ route('admin.logs.show', $log) }}"
+                                            data-loading-text="Loading log details...">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                        </svg>
+                                        View
+                                    </button>
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="px-6 py-12 text-center">
+                                <td colspan="5" class="px-6 py-12 text-center">
                                     <div class="flex flex-col items-center justify-center">
                                         <div class="rounded-full bg-slate-100 p-3 mb-4">
                                             <svg class="h-8 w-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -278,6 +285,110 @@
                 </p>
             @endif
             {{ $logs->withQueryString()->links() }}
+        </div>
+
+        <div id="log-details-modal" class="log-modal hidden" aria-hidden="true">
+            <div class="log-modal__backdrop" data-close-log-modal="true"></div>
+            <div class="log-modal__panel" role="dialog" aria-modal="true" aria-labelledby="log-details-title">
+                <div class="flex items-start justify-between border-b border-slate-200 px-5 py-4">
+                    <div>
+                        <h3 id="log-details-title" class="text-base font-semibold text-slate-900">Audit Log Details</h3>
+                        <p class="mt-1 text-xs text-slate-500">Complete activity information for the selected log.</p>
+                    </div>
+                    <button type="button"
+                            id="close-log-details-modal"
+                            class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-all">
+                        Close
+                    </button>
+                </div>
+
+                <div class="max-h-[78vh] overflow-auto px-5 py-4 space-y-4">
+                    <div id="log-details-loading" class="space-y-3">
+                        <div class="h-3 w-32 rounded bg-slate-100 animate-pulse"></div>
+                        <div class="h-3 w-full rounded bg-slate-100 animate-pulse"></div>
+                        <div class="h-3 w-5/6 rounded bg-slate-100 animate-pulse"></div>
+                    </div>
+
+                    <div id="log-details-content" class="hidden space-y-4">
+                        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                            <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                                <p class="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">Log ID</p>
+                                <p id="log-detail-id" class="mt-1 text-sm font-semibold text-slate-900">-</p>
+                            </div>
+                            <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                                <p class="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">Action</p>
+                                <p id="log-detail-action" class="mt-1 text-sm font-semibold text-slate-900 break-all">-</p>
+                            </div>
+                            <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                                <p class="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">Date and Time</p>
+                                <p id="log-detail-created-at" class="mt-1 text-sm font-semibold text-slate-900">-</p>
+                            </div>
+                            <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                                <p class="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">IP Address</p>
+                                <p id="log-detail-ip" class="mt-1 text-sm font-semibold text-slate-900 break-all">-</p>
+                            </div>
+                        </div>
+
+                        <div class="grid gap-4 xl:grid-cols-2">
+                            <div class="rounded-xl border border-slate-200 p-4">
+                                <h4 class="text-sm font-semibold text-slate-800">Actor Information</h4>
+                                <dl class="mt-3 space-y-2 text-sm">
+                                    <div class="flex justify-between gap-3">
+                                        <dt class="text-slate-500">User</dt>
+                                        <dd id="log-detail-user-name" class="font-medium text-slate-900 text-right">-</dd>
+                                    </div>
+                                    <div class="flex justify-between gap-3">
+                                        <dt class="text-slate-500">User ID</dt>
+                                        <dd id="log-detail-user-id" class="font-medium text-slate-900 text-right">-</dd>
+                                    </div>
+                                    <div class="flex justify-between gap-3">
+                                        <dt class="text-slate-500">Email</dt>
+                                        <dd id="log-detail-user-email" class="font-medium text-slate-900 text-right break-all">-</dd>
+                                    </div>
+                                </dl>
+                            </div>
+
+                            <div class="rounded-xl border border-slate-200 p-4">
+                                <h4 class="text-sm font-semibold text-slate-800">Affected Resource</h4>
+                                <dl class="mt-3 space-y-2 text-sm">
+                                    <div class="flex justify-between gap-3">
+                                        <dt class="text-slate-500">Type</dt>
+                                        <dd id="log-detail-resource-type" class="font-medium text-slate-900 text-right break-all">-</dd>
+                                    </div>
+                                    <div class="flex justify-between gap-3">
+                                        <dt class="text-slate-500">Model Class</dt>
+                                        <dd id="log-detail-resource-class" class="font-medium text-slate-900 text-right break-all">-</dd>
+                                    </div>
+                                    <div class="flex justify-between gap-3">
+                                        <dt class="text-slate-500">Resource ID</dt>
+                                        <dd id="log-detail-resource-id" class="font-medium text-slate-900 text-right">-</dd>
+                                    </div>
+                                </dl>
+                            </div>
+                        </div>
+
+                        <div class="rounded-xl border border-slate-200 p-4">
+                            <h4 class="text-sm font-semibold text-slate-800">User Agent</h4>
+                            <p id="log-detail-user-agent" class="mt-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-700 break-all">-</p>
+                        </div>
+
+                        <div class="rounded-xl border border-slate-200 p-4">
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-sm font-semibold text-slate-800">Context Details</h4>
+                                <button type="button" id="log-context-copy"
+                                        class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-all">
+                                    Copy
+                                </button>
+                            </div>
+                            <div id="log-detail-context" class="log-context mt-2 max-h-[20rem] overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3"></div>
+                        </div>
+                    </div>
+
+                    <div id="log-details-error" class="hidden rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                        Failed to load log details. Please try again.
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -321,5 +432,505 @@
         .overflow-y-auto::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+
+        .log-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 110;
+        }
+
+        .log-modal.hidden {
+            display: none;
+        }
+
+        .log-modal__backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(2px);
+        }
+
+        .log-modal__panel {
+            position: relative;
+            z-index: 1;
+            width: min(72rem, calc(100vw - 1.5rem));
+            margin: 6vh auto 0;
+            border-radius: 1rem;
+            border: 1px solid #dbeafe;
+            background: #fff;
+            box-shadow: 0 28px 50px rgba(15, 23, 42, 0.35);
+        }
+
+        .log-context {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .log-context::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .log-context::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 999px;
+        }
+
+        .log-context__section {
+            border: 1px solid #dbeafe;
+            border-radius: 0.75rem;
+            background: #ffffff;
+            overflow: hidden;
+        }
+
+        .log-context__section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            padding: 0.55rem 0.75rem;
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .log-context__section-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            color: #334155;
+        }
+
+        .log-context__section-meta {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        .log-context__section-body {
+            display: grid;
+            gap: 0.5rem;
+            padding: 0.55rem 0.7rem 0.65rem;
+        }
+
+        .log-context__row {
+            display: grid;
+            grid-template-columns: minmax(8.5rem, 12rem) 1fr;
+            gap: 0.5rem;
+            align-items: start;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.42rem 0.1rem;
+        }
+
+        .log-context__row:last-child {
+            border-bottom: 0;
+        }
+
+        .log-context__key {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.045em;
+        }
+
+        .log-context__value {
+            font-size: 0.8rem;
+            color: #0f172a;
+            word-break: break-word;
+            line-height: 1.35;
+        }
+
+        .log-context__text {
+            color: #0f172a;
+            font-weight: 500;
+        }
+
+        .log-context__pill {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 0.15rem 0.5rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .log-context__pill--success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .log-context__pill--muted {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .log-context__nested {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.65rem;
+            background: #f8fafc;
+            padding: 0.5rem 0.55rem;
+        }
+
+        .log-context__nested-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin-bottom: 0.35rem;
+        }
+
+        .log-context__nested-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #334155;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        .log-context__nested-meta {
+            font-size: 0.66rem;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .log-context__nested-body {
+            border-top: 1px dashed #dbeafe;
+            padding-top: 0.35rem;
+        }
+
+        .log-context__empty {
+            border-radius: 0.6rem;
+            border: 1px dashed #cbd5e1;
+            background: #fff;
+            padding: 0.8rem;
+            font-size: 0.78rem;
+            color: #64748b;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .log-context__row {
+                grid-template-columns: 1fr;
+                gap: 0.2rem;
+            }
+        }
     </style>
+
+    @push('scripts')
+    <script>
+        (function () {
+            const modal = document.getElementById('log-details-modal');
+            if (!modal) return;
+
+            const loading = document.getElementById('log-details-loading');
+            const content = document.getElementById('log-details-content');
+            const error = document.getElementById('log-details-error');
+
+            const fields = {
+                id: document.getElementById('log-detail-id'),
+                action: document.getElementById('log-detail-action'),
+                createdAt: document.getElementById('log-detail-created-at'),
+                ip: document.getElementById('log-detail-ip'),
+                userName: document.getElementById('log-detail-user-name'),
+                userId: document.getElementById('log-detail-user-id'),
+                userEmail: document.getElementById('log-detail-user-email'),
+                resourceType: document.getElementById('log-detail-resource-type'),
+                resourceClass: document.getElementById('log-detail-resource-class'),
+                resourceId: document.getElementById('log-detail-resource-id'),
+                userAgent: document.getElementById('log-detail-user-agent'),
+                context: document.getElementById('log-detail-context'),
+            };
+
+            const closeBtn = document.getElementById('close-log-details-modal');
+            const copyBtn = document.getElementById('log-context-copy');
+            let rawContextJson = '{}';
+
+            const setBodyLock = (locked) => {
+                document.body.style.overflow = locked ? 'hidden' : '';
+            };
+
+            const openModal = () => {
+                modal.classList.remove('hidden');
+                modal.setAttribute('aria-hidden', 'false');
+                setBodyLock(true);
+            };
+
+            const closeModal = () => {
+                modal.classList.add('hidden');
+                modal.setAttribute('aria-hidden', 'true');
+                setBodyLock(false);
+            };
+
+            const showLoading = () => {
+                loading.classList.remove('hidden');
+                content.classList.add('hidden');
+                error.classList.add('hidden');
+            };
+
+            const showContent = () => {
+                loading.classList.add('hidden');
+                content.classList.remove('hidden');
+                error.classList.add('hidden');
+            };
+
+            const showError = () => {
+                loading.classList.add('hidden');
+                content.classList.add('hidden');
+                error.classList.remove('hidden');
+            };
+
+            const MAX_CONTEXT_DEPTH = 4;
+
+            const escapeHtml = (value) => String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+
+            const humanizeKey = (key) => String(key)
+                .replace(/[_-]+/g, ' ')
+                .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .replace(/\b\w/g, (char) => char.toUpperCase()) || 'Field';
+
+            const pluralize = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`;
+
+            const tryParseStructuredString = (value) => {
+                if (typeof value !== 'string') {
+                    return value;
+                }
+
+                const trimmed = value.trim();
+                if (!trimmed) {
+                    return value;
+                }
+
+                const looksJsonObject = trimmed.startsWith('{') && trimmed.endsWith('}');
+                const looksJsonArray = trimmed.startsWith('[') && trimmed.endsWith(']');
+
+                if (!looksJsonObject && !looksJsonArray) {
+                    return value;
+                }
+
+                try {
+                    return JSON.parse(trimmed);
+                } catch (error) {
+                    return value;
+                }
+            };
+
+            const formatPrimitive = (value) => {
+                if (value === null || typeof value === 'undefined') {
+                    return '<span class="log-context__pill log-context__pill--muted">Not provided</span>';
+                }
+                if (typeof value === 'boolean') {
+                    return `<span class="log-context__pill ${value ? 'log-context__pill--success' : 'log-context__pill--muted'}">${value ? 'Yes' : 'No'}</span>`;
+                }
+                if (typeof value === 'number') {
+                    return `<span class="log-context__pill">${value.toLocaleString()}</span>`;
+                }
+
+                const text = String(value).trim();
+                if (text === '') {
+                    return '<span class="log-context__pill log-context__pill--muted">Empty</span>';
+                }
+
+                const looksLikeDate = /^\d{4}-\d{2}-\d{2}(T|\s)/.test(text);
+                if (looksLikeDate) {
+                    const parsedDate = new Date(text);
+                    if (!Number.isNaN(parsedDate.getTime())) {
+                        return `<span class="log-context__pill">${escapeHtml(parsedDate.toLocaleString())}</span>`;
+                    }
+                }
+
+                return `<span class="log-context__text">${escapeHtml(text)}</span>`;
+            };
+
+            const isStructured = (value) => Array.isArray(value) || (value !== null && typeof value === 'object');
+
+            const isEmptyStructured = (value) => {
+                if (!isStructured(value)) return false;
+                return Array.isArray(value) ? value.length === 0 : Object.keys(value).length === 0;
+            };
+
+            const toEntries = (value) => Array.isArray(value)
+                ? value.map((item, index) => [`Item ${index + 1}`, item])
+                : Object.entries(value);
+
+            const renderContextEntries = (entries, depth) => {
+                if (!entries.length) {
+                    return '<div class="log-context__empty">No context fields available for this log.</div>';
+                }
+
+                return entries.map(([key, rawValue]) => {
+                    const value = tryParseStructuredString(rawValue);
+
+                    if (!isStructured(value)) {
+                        return `
+                            <div class="log-context__row">
+                                <div class="log-context__key">${escapeHtml(humanizeKey(key))}</div>
+                                <div class="log-context__value">${formatPrimitive(value)}</div>
+                            </div>
+                        `;
+                    }
+
+                    const nestedEntries = toEntries(value);
+
+                    if (!nestedEntries.length) {
+                        return `
+                            <div class="log-context__row">
+                                <div class="log-context__key">${escapeHtml(humanizeKey(key))}</div>
+                                <div class="log-context__value">
+                                    <span class="log-context__pill log-context__pill--muted">Empty</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (depth >= MAX_CONTEXT_DEPTH) {
+                        return `
+                            <div class="log-context__row">
+                                <div class="log-context__key">${escapeHtml(humanizeKey(key))}</div>
+                                <div class="log-context__value">
+                                    <span class="log-context__pill log-context__pill--muted">${pluralize(nestedEntries.length, 'nested field')}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    return `
+                        <div class="log-context__nested">
+                            <div class="log-context__nested-head">
+                                <span class="log-context__nested-title">${escapeHtml(humanizeKey(key))}</span>
+                                <span class="log-context__nested-meta">${pluralize(nestedEntries.length, 'field')}</span>
+                            </div>
+                            <div class="log-context__nested-body">
+                                ${renderContextEntries(nestedEntries, depth + 1)}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            };
+
+            const renderContext = (context) => {
+                const normalizedContext = tryParseStructuredString(context ?? {});
+                if (!isStructured(normalizedContext) || isEmptyStructured(normalizedContext)) {
+                    fields.context.innerHTML = '<div class="log-context__empty">No context fields available for this log.</div>';
+                    return;
+                }
+
+                const rootEntries = toEntries(normalizedContext);
+                fields.context.innerHTML = rootEntries.map(([key, rootValue]) => {
+                    const parsedRootValue = tryParseStructuredString(rootValue);
+                    if (!isStructured(parsedRootValue)) {
+                        return `
+                            <section class="log-context__section">
+                                <div class="log-context__section-header">
+                                    <h5 class="log-context__section-title">${escapeHtml(humanizeKey(key))}</h5>
+                                </div>
+                                <div class="log-context__section-body">
+                                    <div class="log-context__row">
+                                        <div class="log-context__key">Value</div>
+                                        <div class="log-context__value">${formatPrimitive(parsedRootValue)}</div>
+                                    </div>
+                                </div>
+                            </section>
+                        `;
+                    }
+
+                    const sectionEntries = toEntries(parsedRootValue);
+                    return `
+                        <section class="log-context__section">
+                            <div class="log-context__section-header">
+                                <h5 class="log-context__section-title">${escapeHtml(humanizeKey(key))}</h5>
+                                <span class="log-context__section-meta">${pluralize(sectionEntries.length, 'field')}</span>
+                            </div>
+                            <div class="log-context__section-body">
+                                ${sectionEntries.length
+                                    ? renderContextEntries(sectionEntries, 1)
+                                    : '<div class="log-context__empty">No context fields available for this section.</div>'}
+                            </div>
+                        </section>
+                    `;
+                }).join('');
+            };
+
+            const fillDetails = (payload) => {
+                fields.id.textContent = payload?.id ?? '-';
+                fields.action.textContent = payload?.action ?? '-';
+                fields.createdAt.textContent = payload?.created_at_label ?? '-';
+                fields.ip.textContent = payload?.ip_address ?? '-';
+                fields.userName.textContent = payload?.user?.name ?? 'System / Guest';
+                fields.userId.textContent = payload?.user?.id ?? '-';
+                fields.userEmail.textContent = payload?.user?.email ?? '-';
+                fields.resourceType.textContent = payload?.loggable?.type_label ?? '-';
+                fields.resourceClass.textContent = payload?.loggable?.type ?? '-';
+                fields.resourceId.textContent = payload?.loggable?.id ?? '-';
+                fields.userAgent.textContent = payload?.user_agent ?? '-';
+                const safeContext = payload?.context ?? {};
+                rawContextJson = JSON.stringify(safeContext, null, 2);
+                renderContext(safeContext);
+            };
+
+            document.querySelectorAll('[data-log-view-url]').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    showLoading();
+                    openModal();
+
+                    try {
+                        const response = await fetch(button.dataset.logViewUrl, {
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json',
+                            },
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch details');
+                        }
+
+                        const payload = await response.json();
+                        fillDetails(payload);
+                        showContent();
+                    } catch (exception) {
+                        console.error(exception);
+                        showError();
+                    }
+                });
+            });
+
+            closeBtn?.addEventListener('click', closeModal);
+
+            modal.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof HTMLElement)) return;
+                if (target.dataset.closeLogModal === 'true') {
+                    closeModal();
+                }
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
+                    closeModal();
+                }
+            });
+
+            copyBtn?.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(rawContextJson || '{}');
+                    copyBtn.textContent = 'Copied';
+                    setTimeout(() => {
+                        copyBtn.textContent = 'Copy';
+                    }, 1000);
+                } catch (exception) {
+                    console.error(exception);
+                }
+            });
+        })();
+    </script>
+    @endpush
 </x-app-layout>
