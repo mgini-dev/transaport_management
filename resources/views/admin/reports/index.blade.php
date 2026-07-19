@@ -158,7 +158,7 @@
                                 <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-slate-500">Customer</th>
                                 <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-slate-500">Status</th>
                                 <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-slate-500">Weight</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-slate-500">Value</th>
+
                                 <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-slate-500">Distance</th>
                                 <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-slate-500">Fuel (L)</th>
                                 <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-slate-500">Fuel Amount</th>
@@ -173,7 +173,7 @@
                                     <td class="px-6 py-4 text-sm">{{ $order->customer?->name ?? '-' }}</td>
                                     <td class="px-6 py-4 text-sm">{{ ucfirst($order->status) }}</td>
                                     <td class="px-6 py-4 text-sm">{{ number_format((float) $order->weight_tons, 2) }} t</td>
-                                    <td class="px-6 py-4 text-sm">{{ number_format((float) $order->agreed_price, 2) }}</td>
+
                                     <td class="px-6 py-4 text-sm">{{ $order->distance_km ? number_format((float) $order->distance_km, 2).' km' : '-' }}</td>
                                     <td class="px-6 py-4 text-sm">{{ number_format((float) ($order->fuel_consumption_litres ?? 0), 2) }}</td>
                                     <td class="px-6 py-4 text-sm">{{ number_format((float) ($order->fuel_consumption_amount ?? 0), 2) }}</td>

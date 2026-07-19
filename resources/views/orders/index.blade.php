@@ -136,21 +136,7 @@
                                            placeholder="0.00">
                                 </div>
 
-                                <!-- Agreed Price -->
-                                <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">
-                                        Agreed Price <span class="text-rose-500">*</span>
-                                    </label>
-                                    <div class="relative">
-                                        <span class="absolute left-3 top-2.5 text-slate-500">$</span>
-                                        <input type="number" 
-                                               name="agreed_price" 
-                                               step="0.01" 
-                                               required 
-                                               class="w-full rounded-xl border-slate-300 bg-slate-50 pl-8 pr-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
-                                               placeholder="0.00">
-                                    </div>
-                                </div>
+
 
                                 <!-- Origin Region -->
                                 <div class="md:col-span-1">
@@ -507,13 +493,21 @@
             color: #3f7f1f;
         }
 
-        /* Clean Status Tabs (white background, color on text only) */
+        /* Clean Status Tabs */
         .status-tab {
-            @apply inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-radius: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             background-color: #ffffff;
             border: 1px solid #e2e8f0;
             color: #475569;
             min-width: fit-content;
+            cursor: pointer;
         }
 
         .status-tab:hover {
@@ -524,13 +518,16 @@
 
         .status-tab.active {
             background-color: #ffffff;
-            box-shadow: inset 0 0 0 1px currentColor, 0 6px 12px rgba(15, 23, 42, 0.08);
+            box-shadow: inset 0 0 0 1px currentColor, 0 8px 16px rgba(15, 23, 42, 0.08);
+            border-color: transparent;
         }
 
         .status-tab-dot {
-            @apply h-2 w-2 rounded-full;
+            height: 0.5rem;
+            width: 0.5rem;
+            border-radius: 9999px;
             background: currentColor;
-            opacity: 0.9;
+            opacity: 0.6;
         }
 
         .status-tab.active .status-tab-dot {
@@ -538,87 +535,47 @@
         }
 
         .status-tab-count {
-            @apply inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-semibold min-w-[1.5rem];
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9999px;
+            padding: 0.125rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            min-width: 1.5rem;
             background-color: #f1f5f9;
             color: #334155;
             margin-left: 0.25rem;
         }
 
         .status-tab.active .status-tab-count {
-            background-color: color-mix(in srgb, currentColor 14%, white);
+            background-color: rgba(0, 0, 0, 0.05);
             color: currentColor;
         }
 
-        /* Status-specific font colors */
-        .status-tab[data-status=""] {
-            color: #334155;
-        }
-
-        .status-tab[data-status="created"] {
-            color: #b45309;
-        }
-
-        .status-tab[data-status="processing"] {
-            color: #0f766e;
-        }
-
-        .status-tab[data-status="assigned"] {
-            color: #1d4ed8;
-        }
-
-        .status-tab[data-status="transportation"] {
-            color: #4338ca;
-        }
-
-        .status-tab[data-status="incomplete"] {
-            color: #b91c1c;
-        }
-
-        .status-tab[data-status="completed"] {
-            color: #15803d;
-        }
-
-        .status-tab[data-status=""] .status-tab-count {
-            background-color: #e2e8f0;
-            color: #334155;
-        }
-
-        .status-tab[data-status="created"] .status-tab-count {
-            background-color: rgba(245, 158, 11, 0.14);
-            color: #b45309;
-        }
-
-        .status-tab[data-status="processing"] .status-tab-count {
-            background-color: rgba(20, 184, 166, 0.14);
-            color: #0f766e;
-        }
-
-        .status-tab[data-status="assigned"] .status-tab-count {
-            background-color: rgba(59, 130, 246, 0.14);
-            color: #1d4ed8;
-        }
-
-        .status-tab[data-status="transportation"] .status-tab-count {
-            background-color: rgba(99, 102, 241, 0.14);
-            color: #4338ca;
-        }
-
-        .status-tab[data-status="incomplete"] .status-tab-count {
-            background-color: rgba(239, 68, 68, 0.14);
-            color: #b91c1c;
-        }
-
-        .status-tab[data-status="completed"] .status-tab-count {
-            background-color: rgba(34, 197, 94, 0.14);
-            color: #15803d;
-        }
+        /* Status-specific colors */
+        .status-tab[data-status=""] { color: #334155; }
+        .status-tab[data-status="created"] { color: #b45309; }
+        .status-tab[data-status="processing"] { color: #0f766e; }
+        .status-tab[data-status="assigned"] { color: #1d4ed8; }
+        .status-tab[data-status="transportation"] { color: #4338ca; }
+        .status-tab[data-status="incomplete"] { color: #b91c1c; }
+        .status-tab[data-status="completed"] { color: #15803d; }
 
         .processing-action-btn {
-            @apply inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition-all;
-            border-color: #99f6e4;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            border-radius: 0.5rem;
+            border: 1px solid #99f6e4;
+            padding: 0.375rem 0.875rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            transition: all 0.2s;
             background: #ffffff;
             color: #0f766e;
             box-shadow: 0 2px 6px rgba(15, 118, 110, 0.08);
+            cursor: pointer;
         }
 
         .processing-action-btn:hover {
@@ -627,14 +584,14 @@
             box-shadow: 0 6px 14px rgba(15, 118, 110, 0.14);
         }
 
-        /* Responsive adjustments */
         @media (max-width: 640px) {
             .status-tab {
-                @apply px-2.5 py-1.5 text-xs;
+                padding: 0.375rem 0.625rem;
+                font-size: 0.75rem;
             }
-            
             .status-tab-count {
-                @apply px-1.5 py-0.5 text-[10px];
+                padding: 0.125rem 0.375rem;
+                font-size: 0.625rem;
             }
         }
     </style>

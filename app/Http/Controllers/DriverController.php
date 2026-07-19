@@ -11,6 +11,7 @@ use App\Support\NmisDataScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class DriverController extends Controller
@@ -49,6 +50,12 @@ class DriverController extends Controller
                         'contact2_name' => $driver->contact2_name,
                         'contact2_phone' => $driver->contact2_phone,
                         'contact2_address' => $driver->contact2_address,
+                        'certificate_number' => $driver->certificate_number,
+                        'certificate_file_path' => $driver->certificate_file_path ? Storage::url($driver->certificate_file_path) : null,
+                        'certificate_expiry_date' => $driver->certificate_expiry_date?->format('Y-m-d'),
+                        'license_file_path' => $driver->license_file_path ? Storage::url($driver->license_file_path) : null,
+                        'license_expiry_date' => $driver->license_expiry_date?->format('Y-m-d'),
+                        'license_renewed_place' => $driver->license_renewed_place,
                         'fleet' => $driver->fleet?->fleet_code.' - '.$driver->fleet?->plate_number,
                         'is_active' => $driver->is_active,
                     ];
@@ -90,6 +97,8 @@ class DriverController extends Controller
                 'active' => (clone $statsQuery)->where('is_active', true)->count(),
                 'inactive' => (clone $statsQuery)->where('is_active', false)->count(),
                 'with_fleet' => (clone $statsQuery)->whereNotNull('fleet_id')->count(),
+                'expiring_soon' => (clone $statsQuery)->get()->filter(fn($d) => $d->isLicenseExpiringSoon())->count(),
+                'expired' => (clone $statsQuery)->get()->filter(fn($d) => $d->isLicenseExpired())->count(),
             ],
         ]);
     }
@@ -101,6 +110,12 @@ class DriverController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'license_number' => ['required', 'string', 'max:255', 'unique:drivers,license_number'],
+            'certificate_number' => ['required', 'string', 'max:255'],
+            'certificate_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'], // 5MB max
+            'certificate_expiry_date' => ['nullable', 'date'],
+            'license_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'], // 5MB max
+            'license_expiry_date' => ['nullable', 'date'],
+            'license_renewed_place' => ['nullable', 'string', 'max:255'],
             'mobile_number' => ['required', 'string', 'max:50'],
             'driver_address' => ['required', 'string'],
             'contact1_name' => ['required', 'string', 'max:255'],
@@ -112,10 +127,26 @@ class DriverController extends Controller
             'is_active' => ['required', 'boolean'],
         ]);
 
+        $certificatePath = null;
+        if ($request->hasFile('certificate_file')) {
+            $certificatePath = $request->file('certificate_file')->store('drivers/certificates', 'public');
+        }
+
+        $licensePath = null;
+        if ($request->hasFile('license_file')) {
+            $licensePath = $request->file('license_file')->store('drivers/licenses', 'public');
+        }
+
         $driver = Driver::query()->create([
             'fleet_id' => null,
             'name' => $data['name'],
             'license_number' => $data['license_number'],
+            'certificate_number' => $data['certificate_number'],
+            'certificate_file_path' => $certificatePath,
+            'certificate_expiry_date' => $data['certificate_expiry_date'] ?? null,
+            'license_file_path' => $licensePath,
+            'license_expiry_date' => $data['license_expiry_date'] ?? null,
+            'license_renewed_place' => $data['license_renewed_place'] ?? null,
             'mobile_number' => $data['mobile_number'],
             'driver_address' => $data['driver_address'],
             'contact1_name' => $data['contact1_name'],
@@ -148,6 +179,12 @@ class DriverController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'license_number' => ['required', 'string', 'max:255', 'unique:drivers,license_number,'.$driver->id],
+            'certificate_number' => ['required', 'string', 'max:255'],
+            'certificate_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'], // 5MB max
+            'certificate_expiry_date' => ['nullable', 'date'],
+            'license_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'], // 5MB max
+            'license_expiry_date' => ['nullable', 'date'],
+            'license_renewed_place' => ['nullable', 'string', 'max:255'],
             'mobile_number' => ['required', 'string', 'max:50'],
             'driver_address' => ['required', 'string'],
             'contact1_name' => ['required', 'string', 'max:255'],
@@ -159,9 +196,13 @@ class DriverController extends Controller
             'is_active' => ['required', 'boolean'],
         ]);
 
-        $driver->update([
+        $updateData = [
             'name' => $data['name'],
             'license_number' => $data['license_number'],
+            'certificate_number' => $data['certificate_number'],
+            'certificate_expiry_date' => $data['certificate_expiry_date'] ?? null,
+            'license_expiry_date' => $data['license_expiry_date'] ?? null,
+            'license_renewed_place' => $data['license_renewed_place'] ?? null,
             'mobile_number' => $data['mobile_number'],
             'driver_address' => $data['driver_address'],
             'contact1_name' => $data['contact1_name'],
@@ -171,7 +212,23 @@ class DriverController extends Controller
             'contact2_phone' => $data['contact2_phone'] ?? null,
             'contact2_address' => $data['contact2_address'] ?? null,
             'is_active' => (bool) $data['is_active'],
-        ]);
+        ];
+
+        if ($request->hasFile('certificate_file')) {
+            if ($driver->certificate_file_path) {
+                Storage::disk('public')->delete($driver->certificate_file_path);
+            }
+            $updateData['certificate_file_path'] = $request->file('certificate_file')->store('drivers/certificates', 'public');
+        }
+
+        if ($request->hasFile('license_file')) {
+            if ($driver->license_file_path) {
+                Storage::disk('public')->delete($driver->license_file_path);
+            }
+            $updateData['license_file_path'] = $request->file('license_file')->store('drivers/licenses', 'public');
+        }
+
+        $driver->update($updateData);
 
         $this->auditLogService->record(
             action: 'driver.updated',

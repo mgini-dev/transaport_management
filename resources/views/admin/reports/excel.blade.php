@@ -97,7 +97,7 @@
                     <th>Customer</th>
                     <th>Status</th>
                     <th>Weight</th>
-                    <th>Value</th>
+
                     <th>Distance (KM)</th>
                     <th>Fuel (L)</th>
                     <th>Fuel Amount</th>
@@ -112,7 +112,7 @@
                         <td>{{ $order->customer?->name ?? '-' }}</td>
                         <td>{{ ucfirst($order->status) }}</td>
                         <td>{{ number_format((float) $order->weight_tons, 2) }}</td>
-                        <td>{{ number_format((float) $order->agreed_price, 2) }}</td>
+
                         <td>{{ $order->distance_km ? number_format((float) $order->distance_km, 2) : '-' }}</td>
                         <td>{{ number_format((float) ($order->fuel_consumption_litres ?? 0), 2) }}</td>
                         <td>{{ number_format((float) ($order->fuel_consumption_amount ?? 0), 2) }}</td>

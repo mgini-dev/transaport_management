@@ -16,7 +16,8 @@ class FuelRequisitionService
 {
     public function __construct(
         private readonly NotificationRoutingService $notificationRoutingService,
-        private readonly DistanceService $distanceService
+        private readonly DistanceService $distanceService,
+        private readonly FleetService $fleetService
     )
     {
     }
@@ -112,6 +113,7 @@ class FuelRequisitionService
                     'payment_account',
                     'origin_address',
                     'destination_address',
+                    'odometer_reading',
                 ]),
                 'order_id' => $order?->id,
                 'requisition_type' => $type,
@@ -200,6 +202,9 @@ class FuelRequisitionService
             'supervisor_id' => $actor->id,
             'supervisor_remarks' => $remarks,
             'supervisor_reviewed_at' => now(),
+            'accountant_id' => null,
+            'accountant_remarks' => null,
+            'accountant_reviewed_at' => null,
         ]);
 
         if ($approved) {
@@ -221,13 +226,13 @@ class FuelRequisitionService
             );
         } else {
             $requisition->requester?->notify(new \App\Notifications\WorkflowStageNotification(
-                title: 'Fuel requisition rejected by supervisor',
-                message: "Fuel requisition #{$requisition->id} was rejected by supervisor.",
+                title: 'Fuel requisition returned by supervisor',
+                message: "Fuel requisition #{$requisition->id} was returned by supervisor.",
                 type: 'fuel.supervisor_rejected',
                 meta: [
                     'requisition_id' => $requisition->id,
                     'order_id' => $requisition->order_id,
-                    'required_action' => 'Review supervisor remarks and submit another requisition if needed.',
+                    'required_action' => 'Review supervisor remarks and submit a revised requisition.',
                     'action_url' => route('fuel.show', $requisition->encrypted_id),
                 ]
             ));
@@ -243,39 +248,153 @@ class FuelRequisitionService
         }
 
         $requisition->update([
-            'status' => $approved ? 'accountant_approved' : 'accountant_rejected',
+            'status' => $approved ? 'accountant_approved' : 'submitted',
             'accountant_id' => $actor->id,
             'accountant_remarks' => $remarks,
             'accountant_reviewed_at' => now(),
         ]);
 
-        $requisition->requester?->notify(new \App\Notifications\WorkflowStageNotification(
-            title: 'Fuel requisition accounting decision',
-            message: "Fuel requisition #{$requisition->id} is now {$requisition->status}.",
-            type: 'fuel.accountant_decision',
-            meta: [
-                'requisition_id' => $requisition->id,
-                'order_id' => $requisition->order_id,
-                'required_action' => 'Open requisition details and proceed with the next order workflow step.',
-                'action_url' => route('fuel.show', $requisition->encrypted_id),
-            ]
-        ));
+        if ($approved) {
+            if ($requisition->odometer_reading > 0) {
+                $this->fleetService->updateOdometer($requisition->fleet, $requisition->odometer_reading);
+            }
 
-        if ($approved && $requisition->order_id) {
-            $order = Order::query()->with('legs')->find($requisition->order_id);
-            if ($order && $order->status === 'assigned' && $order->legs()->exists()) {
-                $previousStatus = $order->status;
-                $order->update(['status' => 'transportation']);
-                OrderStatusHistory::query()->create([
-                    'order_id' => $order->id,
-                    'from_status' => $previousStatus,
-                    'to_status' => 'transportation',
-                    'changed_by' => $actor->id,
-                    'remarks' => 'Moved to transportation after accountant approved fuel requisition.',
-                ]);
+            $requisition->requester?->notify(new \App\Notifications\WorkflowStageNotification(
+                title: 'Fuel requisition approved by Accounting',
+                message: "Fuel requisition #{$requisition->id} has been approved by accounting.",
+                type: 'fuel.accountant_decision',
+                meta: [
+                    'requisition_id' => $requisition->id,
+                    'order_id' => $requisition->order_id,
+                    'required_action' => 'Open requisition details and proceed with the next order workflow step.',
+                    'action_url' => route('fuel.show', $requisition->encrypted_id),
+                ]
+            ));
+
+            if ($requisition->order_id) {
+                $order = Order::query()->with('legs')->find($requisition->order_id);
+                if ($order && $order->status === 'assigned' && $order->legs()->exists()) {
+                    $previousStatus = $order->status;
+                    $order->update(['status' => 'transportation']);
+                    OrderStatusHistory::query()->create([
+                        'order_id' => $order->id,
+                        'from_status' => $previousStatus,
+                        'to_status' => 'transportation',
+                        'changed_by' => $actor->id,
+                        'remarks' => 'Moved to transportation after accountant approved fuel requisition.',
+                    ]);
+                }
+            }
+        } else {
+            // Returned to supervisor/manager who sent it
+            if ($requisition->supervisor) {
+                $requisition->supervisor->notify(new \App\Notifications\WorkflowStageNotification(
+                    title: 'Fuel requisition returned by Accounting',
+                    message: "Fuel requisition #{$requisition->id} was returned by accounting with remarks: \"{$remarks}\".",
+                    type: 'fuel.accountant_returned',
+                    meta: [
+                        'requisition_id' => $requisition->id,
+                        'order_id' => $requisition->order_id,
+                        'required_action' => 'Review accountant remarks and re-evaluate the requisition.',
+                        'action_url' => route('fuel.show', $requisition->encrypted_id),
+                    ]
+                ));
             }
         }
 
         return $requisition->refresh();
     }
+
+    public function update(FuelRequisition $requisition, array $payload, User $actor, bool $isRequester): FuelRequisition
+    {
+        return DB::transaction(function () use ($requisition, $payload, $actor, $isRequester) {
+            $fleetId = $requisition->fleet_id;
+            
+            if ($requisition->requisition_type === 'order_based') {
+                $order = $requisition->order;
+                $baseDistance = $order->distance_km !== null
+                    ? (float) $order->distance_km
+                    : $this->distanceService->calculateKm((string) $order->origin_address, (string) $order->destination_address);
+            } else {
+                $originAddress = trim((string) ($payload['origin_address'] ?? $requisition->origin_address));
+                $destinationAddress = trim((string) ($payload['destination_address'] ?? $requisition->destination_address));
+                $baseDistance = $this->distanceService->calculateKm($originAddress, $destinationAddress);
+            }
+
+            $additionalDistance = (float) ($payload['additional_distance_km'] ?? 0);
+            $totalDistance = $baseDistance + $additionalDistance;
+            $estimatedFuelLitres = round($totalDistance * 0.5, 2);
+
+            $availableBalanceLitres = (float) (FuelBalance::query()
+                ->where('fleet_id', $fleetId)
+                ->where('id', '<', $requisition->id)
+                ->latest('id')
+                ->value('remaining_litres') ?? 0);
+
+            $requestedLitres = max(round($estimatedFuelLitres - $availableBalanceLitres, 2), 0);
+            $price = (float) $payload['fuel_price'];
+            $discount = (float) ($payload['discount'] ?? 0);
+            $grossAmount = $requestedLitres * $price;
+            $netAmount = max(round($grossAmount - $discount, 2), 0);
+
+            $updateData = [
+                'fuel_station' => $payload['fuel_station'],
+                'fuel_price' => $price,
+                'discount' => $discount,
+                'payment_channel' => $payload['payment_channel'],
+                'payment_account' => $payload['payment_account'],
+                'additional_litres' => $requestedLitres,
+                'total_amount' => $netAmount,
+            ];
+
+            if ($requisition->requisition_type === 'fleet_only') {
+                $updateData['origin_address'] = $payload['origin_address'];
+                $updateData['destination_address'] = $payload['destination_address'];
+            }
+
+            if (Schema::hasColumn('fuel_requisitions', 'base_distance_km')) {
+                $updateData['base_distance_km'] = round($baseDistance, 2);
+                $updateData['additional_distance_km'] = round($additionalDistance, 2);
+                $updateData['total_distance_km'] = round($totalDistance, 2);
+                $updateData['estimated_fuel_litres'] = $estimatedFuelLitres;
+                $updateData['available_balance_litres'] = round($availableBalanceLitres, 2);
+            }
+
+            if ($isRequester) {
+                $updateData['status'] = 'submitted';
+                $updateData['supervisor_id'] = null;
+                $updateData['supervisor_remarks'] = null;
+                $updateData['supervisor_reviewed_at'] = null;
+                $updateData['accountant_id'] = null;
+                $updateData['accountant_remarks'] = null;
+                $updateData['accountant_reviewed_at'] = null;
+
+                $this->notificationRoutingService->notifyPermission(
+                    permission: 'fuel.approve.supervisor',
+                    title: 'Fuel requisition resubmitted',
+                    message: "Fuel requisition #{$requisition->id} has been resubmitted by {$actor->name}.",
+                    type: 'fuel.submitted',
+                    meta: ['requisition_id' => $requisition->id, 'order_id' => $requisition->order_id],
+                    filter: function (User $user) use ($requisition): bool {
+                        if ($requisition->order_id === null) {
+                            return $user->can('fuel.view_all');
+                        }
+                        return $user->can('fuel.view_all') || $requisition->requested_by === $user->id || $user->can('orders.view_all');
+                    },
+                    excludeUserId: $actor->id,
+                    requiredAction: 'Review and approve or return this requisition.',
+                    actionUrl: route('fuel.show', $requisition->encrypted_id),
+                );
+            } else {
+                $updateData['accountant_id'] = null;
+                $updateData['accountant_remarks'] = null;
+                $updateData['accountant_reviewed_at'] = null;
+            }
+
+            $requisition->update($updateData);
+
+            return $requisition;
+        });
+    }
 }
+

@@ -70,7 +70,7 @@ class ReportController extends Controller
                     ]);
                 }
             } elseif ($reportType === 'orders') {
-                fputcsv($handle, ['Order Number', 'Trip', 'Customer', 'Status', 'Weight (Tons)', 'Agreed Price', 'Distance (KM)', 'Fuel Consumption (L)', 'Fuel Amount', 'Created By', 'Created At']);
+                fputcsv($handle, ['Order Number', 'Trip', 'Customer', 'Status', 'Weight (Tons)', 'Distance (KM)', 'Fuel Consumption (L)', 'Fuel Amount', 'Created By', 'Created At']);
                 foreach ($data['rows'] as $row) {
                     fputcsv($handle, [
                         $row->order_number,
@@ -78,7 +78,6 @@ class ReportController extends Controller
                         $row->customer?->name ?? '-',
                         $row->status,
                         (float) $row->weight_tons,
-                        (float) $row->agreed_price,
                         $row->distance_km !== null ? (float) $row->distance_km : '',
                         (float) ($row->fuel_consumption_litres ?? 0),
                         (float) ($row->fuel_consumption_amount ?? 0),
@@ -258,7 +257,6 @@ class ReportController extends Controller
                 'summary' => [
                     'total_orders' => $rows->count(),
                     'total_weight' => (float) $rows->sum('weight_tons'),
-                    'total_value' => (float) $rows->sum('agreed_price'),
                     'total_fuel_litres' => (float) $rows->sum('fuel_consumption_litres'),
                     'total_fuel_amount' => (float) $rows->sum('fuel_consumption_amount'),
                     'completed_orders' => (int) $rows->where('status', 'completed')->count(),

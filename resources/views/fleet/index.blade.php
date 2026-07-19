@@ -24,6 +24,8 @@
          x-data="{ openFleetModal: false }" 
          @open-fleet-modal.window="openFleetModal = true">
         
+        @include('fleet.partials.navigation')
+        
         <!-- Register Fleet Modal -->
         @can('fleet.create')
             <div x-show="openFleetModal" 
@@ -86,6 +88,21 @@
                                            placeholder="e.g., TRK-001">
                                 </div>
 
+                                <!-- Vehicle Type -->
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                                        Vehicle Type
+                                    </label>
+                                    <select name="vehicle_type" 
+                                            class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
+                                        <option value="">Select Type</option>
+                                        <option value="Truck">Truck</option>
+                                        <option value="Trailer">Trailer</option>
+                                        <option value="Van">Van</option>
+                                        <option value="Pickup">Pickup</option>
+                                    </select>
+                                </div>
+
                                 <!-- Plate Number -->
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 mb-1">
@@ -101,13 +118,37 @@
                                 <!-- Trailer Number -->
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 mb-1">
-                                        Trailer Number <span class="text-rose-500">*</span>
+                                        Trailer Number
                                     </label>
                                     <input type="text"
                                            name="trailer_number"
-                                           required
                                            class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
                                            placeholder="e.g., TRL 908Z">
+                                </div>
+
+                                <!-- Current Odometer -->
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                                        Current Odometer (km) <span class="text-rose-500">*</span>
+                                    </label>
+                                    <input type="number" 
+                                           name="current_odometer" 
+                                           step="0.01" 
+                                           required 
+                                           class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
+                                           placeholder="0.00">
+                                </div>
+
+                                <!-- Service Interval -->
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                                        Service Interval (km) <span class="text-rose-500">*</span>
+                                    </label>
+                                    <input type="number" 
+                                           name="oil_change_interval_km" 
+                                           value="5000"
+                                           required 
+                                           class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
                                 </div>
 
                                 <!-- Capacity -->
@@ -137,15 +178,16 @@
                                     </select>
                                 </div>
 
-                                <!-- Vehicle Type (Optional) -->
+                                <!-- Fuel Benchmark -->
                                 <div class="md:col-span-2">
                                     <label class="block text-sm font-medium text-slate-700 mb-1">
-                                        Vehicle Type (Optional)
+                                        Fuel Consumption Benchmark (L/100km)
                                     </label>
-                                    <input type="text" 
-                                           name="vehicle_type" 
+                                    <input type="number" 
+                                           name="fuel_consumption_benchmark" 
+                                           step="0.01"
                                            class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
-                                           placeholder="e.g., Truck, Trailer, Van">
+                                           placeholder="e.g., 35.5">
                                 </div>
 
                                 <!-- Notes (Optional) -->
@@ -230,14 +272,14 @@
             </div>
             <div class="rounded-xl border border-slate-200/60 bg-white p-5 shadow-sm">
                 <div class="flex items-center justify-between">
-                    <p class="text-sm font-semibold text-slate-500">Total Capacity</p>
-                    <span class="rounded-lg bg-[var(--nmis-primary)]/10 p-2 text-[var(--nmis-primary)]">
+                    <p class="text-sm font-semibold text-slate-500">Service Alerts</p>
+                    <span class="rounded-lg bg-rose-500/10 p-2 text-rose-600">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                         </svg>
                     </span>
                 </div>
-                <p class="mt-3 text-3xl font-bold text-slate-900">{{ number_format($fleets->sum('capacity_tons'), 1) }} t</p>
+                <p class="mt-3 text-3xl font-bold text-rose-600">{{ $needsServiceCount }}</p>
             </div>
         </div>
 
@@ -282,8 +324,9 @@
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Fleet Details</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Plate Number</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Trailer</th>
-                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Capacity</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Odometer</th>
                             <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Service</th>
                             <th scope="col" class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Actions</th>
                         </tr>
                     </thead>
@@ -307,9 +350,6 @@
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4">
                                     <div class="flex items-center gap-2 text-sm text-slate-900">
-                                        <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                        </svg>
                                         {{ $fleet->plate_number }}
                                     </div>
                                 </td>
@@ -317,7 +357,7 @@
                                     <div class="text-sm font-medium text-slate-900">{{ $fleet->trailer_number ?? '-' }}</div>
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4">
-                                    <div class="text-sm font-medium text-slate-900">{{ number_format($fleet->capacity_tons, 1) }} tons</div>
+                                    <div class="text-sm font-medium text-slate-900">{{ number_format($fleet->current_odometer, 0) }} km</div>
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4">
                                     @php
@@ -331,16 +371,42 @@
                                         {{ ucfirst($fleet->status) }}
                                     </span>
                                 </td>
+                                <td class="whitespace-nowrap px-6 py-4">
+                                    @php
+                                        $serviceStatus = $fleet->serviceStatus();
+                                        $serviceColors = [
+                                            'good' => 'bg-emerald-100 text-emerald-700',
+                                            'approaching' => 'bg-amber-100 text-amber-700',
+                                            'overdue' => 'bg-rose-100 text-rose-700'
+                                        ];
+                                    @endphp
+                                    <div class="flex flex-col">
+                                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase {{ $serviceColors[$serviceStatus] }}">
+                                            {{ $serviceStatus }}
+                                        </span>
+                                        <span class="text-[10px] text-slate-400 mt-1">
+                                            Due: {{ number_format($fleet->next_service_due_km, 0) }} km
+                                        </span>
+                                    </div>
+                                </td>
                                 <td class="whitespace-nowrap px-6 py-4 text-right">
                                     <div class="flex items-center justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity duration-200">
+                                        <a href="{{ route('fleet.show', $fleet->encrypted_id) }}" 
+                                           class="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-[var(--nmis-primary)] hover:text-white transition-all"
+                                           title="View History">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                            </svg>
+                                        </a>
                                         @can('fleet.create')
-                                            <button class="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-[var(--nmis-primary)] hover:text-white transition-all" 
-                                                    title="Edit Fleet"
-                                                    onclick="editFleet('{{ $fleet->encrypted_id }}')">
+                                            <a href="{{ route('fleet.edit', $fleet->encrypted_id) }}" 
+                                               class="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-[var(--nmis-primary)] hover:text-white transition-all"
+                                               title="Edit Fleet">
                                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                                 </svg>
-                                            </button>
+                                            </a>
                                         @endcan
                                         @can('fleet.delete')
                                             <form method="POST" action="{{ route('fleet.destroy', $fleet->encrypted_id) }}" 

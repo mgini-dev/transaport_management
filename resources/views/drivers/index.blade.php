@@ -71,7 +71,7 @@
                         </div>
 
                         <!-- Modal Form -->
-                        <form method="POST" action="{{ route('drivers.store') }}" class="p-6">
+                        <form method="POST" action="{{ route('drivers.store') }}" class="p-6" enctype="multipart/form-data">
                             @csrf
                             <div class="grid gap-5 md:grid-cols-2">
                                 <!-- Driver Name -->
@@ -97,6 +97,50 @@
                                            class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
                                            placeholder="e.g., DL-123456">
                                 </div>
+
+                                <!-- License Upload & Expiry -->
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">License Expiry</label>
+                                        <input type="date" name="license_expiry_date" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">License Upload</label>
+                                        <input type="file" name="license_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[var(--nmis-primary)]/10 file:text-[var(--nmis-primary)] hover:file:bg-[var(--nmis-primary)]/20">
+                                    </div>
+                                    <div class="col-span-2">
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">License Renewed Place</label>
+                                        <input type="text" name="license_renewed_place" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all" placeholder="Where was it renewed?">
+                                    </div>
+                                </div>
+
+                                <div class="md:col-span-2 border-t border-slate-200/60 my-2"></div>
+
+                                <!-- Certificate Number -->
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                                        Certificate Number <span class="text-rose-500">*</span>
+                                    </label>
+                                    <input type="text" 
+                                           name="certificate_number" 
+                                           required 
+                                           class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
+                                           placeholder="e.g., CRT-98765">
+                                </div>
+
+                                <!-- Certificate Upload & Expiry -->
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">Certificate Expiry</label>
+                                        <input type="date" name="certificate_expiry_date" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">Certificate Upload</label>
+                                        <input type="file" name="certificate_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[var(--nmis-primary)]/10 file:text-[var(--nmis-primary)] hover:file:bg-[var(--nmis-primary)]/20">
+                                    </div>
+                                </div>
+
+                                <div class="md:col-span-2 border-t border-slate-200/60 my-2"></div>
 
                                 <!-- Mobile Number -->
                                 <div>
@@ -243,7 +287,7 @@
                     </div>
 
                     <!-- Modal Form -->
-                    <form :action="`{{ url('/drivers') }}/${form.id}`" method="POST" class="p-6">
+                    <form :action="`{{ url('/drivers') }}/${form.id}`" method="POST" class="p-6" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
                         <div class="grid gap-5 md:grid-cols-2">
@@ -272,6 +316,51 @@
                                        class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
                                        placeholder="e.g., DL-123456">
                             </div>
+
+                            <!-- License Upload & Expiry -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">License Expiry</label>
+                                    <input type="date" name="license_expiry_date" x-model="form.license_expiry_date" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">License Upload (Leave blank to keep current)</label>
+                                    <input type="file" name="license_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[var(--nmis-primary)]/10 file:text-[var(--nmis-primary)] hover:file:bg-[var(--nmis-primary)]/20">
+                                </div>
+                                <div class="col-span-2">
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">License Renewed Place</label>
+                                    <input type="text" name="license_renewed_place" x-model="form.license_renewed_place" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all" placeholder="Where was it renewed?">
+                                </div>
+                            </div>
+
+                            <div class="md:col-span-2 border-t border-slate-200/60 my-2"></div>
+
+                            <!-- Certificate Number -->
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">
+                                    Certificate Number <span class="text-rose-500">*</span>
+                                </label>
+                                <input type="text" 
+                                       name="certificate_number" 
+                                       x-model="form.certificate_number"
+                                       required 
+                                       class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all"
+                                       placeholder="e.g., CRT-98765">
+                            </div>
+
+                            <!-- Certificate Upload & Expiry -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Certificate Expiry</label>
+                                    <input type="date" name="certificate_expiry_date" x-model="form.certificate_expiry_date" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Certificate Upload (Leave blank to keep current)</label>
+                                    <input type="file" name="certificate_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[var(--nmis-primary)]/10 file:text-[var(--nmis-primary)] hover:file:bg-[var(--nmis-primary)]/20">
+                                </div>
+                            </div>
+
+                            <div class="md:col-span-2 border-t border-slate-200/60 my-2"></div>
 
                             <!-- Mobile Number -->
                             <div>
@@ -412,10 +501,48 @@
                             <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Driver Info</p>
                             <dl class="mt-3 space-y-2 text-sm">
                                 <div class="flex justify-between gap-3"><dt class="text-slate-500">Name</dt><dd class="font-medium text-slate-900" x-text="viewDriver.name || '-'"></dd></div>
-                                <div class="flex justify-between gap-3"><dt class="text-slate-500">License</dt><dd class="font-medium text-slate-900" x-text="viewDriver.license_number || '-'"></dd></div>
                                 <div class="flex justify-between gap-3"><dt class="text-slate-500">Mobile</dt><dd class="font-medium text-slate-900" x-text="viewDriver.mobile_number || '-'"></dd></div>
                                 <div class="flex justify-between gap-3"><dt class="text-slate-500">Fleet</dt><dd class="font-medium text-slate-900 text-right" x-text="viewDriver.fleet_label || 'No fleet assigned'"></dd></div>
                             </dl>
+                            <div class="mt-4 pt-3 border-t border-slate-200">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Credentials</p>
+                                <dl class="mt-2 space-y-2 text-sm">
+                                    <div class="flex justify-between items-center gap-3">
+                                        <dt class="text-slate-500">License</dt>
+                                        <dd class="flex items-center gap-2">
+                                            <span class="font-medium text-slate-900" x-text="viewDriver.license_number || '-'"></span>
+                                            <template x-if="viewDriver.license_file_path">
+                                                <a :href="viewDriver.license_file_path" target="_blank" class="text-xs font-semibold text-[var(--nmis-primary)] hover:underline flex items-center gap-1">
+                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                                    View
+                                                </a>
+                                            </template>
+                                        </dd>
+                                    </div>
+                                    <template x-if="viewDriver.license_expiry_date">
+                                        <div class="flex justify-between gap-3"><dt class="text-slate-500 text-xs pl-2">Expiry</dt><dd class="text-xs text-slate-600" x-text="viewDriver.license_expiry_date"></dd></div>
+                                    </template>
+                                    <template x-if="viewDriver.license_renewed_place">
+                                        <div class="flex justify-between gap-3"><dt class="text-slate-500 text-xs pl-2">Renewed At</dt><dd class="text-xs text-slate-600" x-text="viewDriver.license_renewed_place"></dd></div>
+                                    </template>
+
+                                    <div class="flex justify-between items-center gap-3 pt-2">
+                                        <dt class="text-slate-500">Certificate</dt>
+                                        <dd class="flex items-center gap-2">
+                                            <span class="font-medium text-slate-900" x-text="viewDriver.certificate_number || '-'"></span>
+                                            <template x-if="viewDriver.certificate_file_path">
+                                                <a :href="viewDriver.certificate_file_path" target="_blank" class="text-xs font-semibold text-[var(--nmis-primary)] hover:underline flex items-center gap-1">
+                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                                    View
+                                                </a>
+                                            </template>
+                                        </dd>
+                                    </div>
+                                    <template x-if="viewDriver.certificate_expiry_date">
+                                        <div class="flex justify-between gap-3"><dt class="text-slate-500 text-xs pl-2">Expiry</dt><dd class="text-xs text-slate-600" x-text="viewDriver.certificate_expiry_date"></dd></div>
+                                    </template>
+                                </dl>
+                            </div>
                             <div class="mt-3 border-t border-slate-200 pt-3">
                                 <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Driver Address</p>
                                 <p class="mt-1 text-sm text-slate-700" x-text="viewDriver.driver_address || '-'"></p>
@@ -460,10 +587,10 @@
         @endif
 
         <!-- Stats Cards -->
-        <div class="grid gap-4 sm:grid-cols-4">
+        <div class="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
             <div class="rounded-xl border border-slate-200/60 bg-white p-5 shadow-sm">
                 <div class="flex items-center justify-between">
-                    <p class="text-sm font-semibold text-slate-500">Total Drivers</p>
+                    <p class="text-sm font-semibold text-slate-500">Total</p>
                     <span class="rounded-lg bg-[var(--nmis-primary)]/10 p-2 text-[var(--nmis-primary)]">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
@@ -474,7 +601,7 @@
             </div>
             <div class="rounded-xl border border-slate-200/60 bg-white p-5 shadow-sm">
                 <div class="flex items-center justify-between">
-                    <p class="text-sm font-semibold text-slate-500">Active Drivers</p>
+                    <p class="text-sm font-semibold text-slate-500">Active</p>
                     <span class="rounded-lg bg-[var(--nmis-accent)]/10 p-2 text-[var(--nmis-accent)]">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -485,7 +612,7 @@
             </div>
             <div class="rounded-xl border border-slate-200/60 bg-white p-5 shadow-sm">
                 <div class="flex items-center justify-between">
-                    <p class="text-sm font-semibold text-slate-500">Inactive Drivers</p>
+                    <p class="text-sm font-semibold text-slate-500">Inactive</p>
                     <span class="rounded-lg bg-[var(--nmis-secondary)]/10 p-2 text-[var(--nmis-secondary)]">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -504,6 +631,28 @@
                     </span>
                 </div>
                 <p class="mt-3 text-3xl font-bold text-slate-900">{{ $driverStats['with_fleet'] }}</p>
+            </div>
+            <div class="rounded-xl border border-amber-200/60 bg-amber-50/50 p-5 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <p class="text-sm font-semibold text-amber-700">Expiring Soon</p>
+                    <span class="rounded-lg bg-amber-100 p-2 text-amber-600">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </span>
+                </div>
+                <p class="mt-3 text-3xl font-bold text-amber-700">{{ $driverStats['expiring_soon'] }}</p>
+            </div>
+            <div class="rounded-xl border border-rose-200/60 bg-rose-50/50 p-5 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <p class="text-sm font-semibold text-rose-700">Expired</p>
+                    <span class="rounded-lg bg-rose-100 p-2 text-rose-600">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                    </span>
+                </div>
+                <p class="mt-3 text-3xl font-bold text-rose-700">{{ $driverStats['expired'] }}</p>
             </div>
         </div>
 
@@ -569,7 +718,20 @@
                                     </div>
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4">
-                                    <div class="text-sm font-mono text-slate-900">{{ $driver->license_number }}</div>
+                                    <div class="flex flex-col items-start gap-1">
+                                        <div class="text-sm font-mono text-slate-900">{{ $driver->license_number }}</div>
+                                        @if($driver->isLicenseExpired())
+                                            <span class="inline-flex items-center gap-1 rounded bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
+                                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                                License Expired
+                                            </span>
+                                        @elseif($driver->isLicenseExpiringSoon())
+                                            <span class="inline-flex items-center gap-1 rounded bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                Expiring in {{ abs((int) now()->startOfDay()->diffInDays($driver->license_expiry_date->startOfDay(), true)) }} days
+                                            </span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4">
                                     <div class="flex items-center gap-2 text-sm text-slate-900">
@@ -616,6 +778,12 @@
                                                 @click="openViewModal({
                                                     name: @js($driver->name),
                                                     license_number: @js($driver->license_number),
+                                                    certificate_number: @js($driver->certificate_number),
+                                                    certificate_file_path: @js($driver->certificate_file_path ? Storage::url($driver->certificate_file_path) : null),
+                                                    certificate_expiry_date: @js($driver->certificate_expiry_date?->format('Y-m-d')),
+                                                    license_file_path: @js($driver->license_file_path ? Storage::url($driver->license_file_path) : null),
+                                                    license_expiry_date: @js($driver->license_expiry_date?->format('Y-m-d')),
+                                                    license_renewed_place: @js($driver->license_renewed_place),
                                                     mobile_number: @js($driver->mobile_number),
                                                     driver_address: @js($driver->driver_address),
                                                     contact1_name: @js($driver->contact1_name),
@@ -639,6 +807,10 @@
                                                         id: '{{ $driver->encrypted_id }}',
                                                         name: @js($driver->name),
                                                         license_number: @js($driver->license_number),
+                                                        certificate_number: @js($driver->certificate_number),
+                                                        certificate_expiry_date: @js($driver->certificate_expiry_date?->format('Y-m-d')),
+                                                        license_expiry_date: @js($driver->license_expiry_date?->format('Y-m-d')),
+                                                        license_renewed_place: @js($driver->license_renewed_place),
                                                         mobile_number: @js($driver->mobile_number),
                                                         driver_address: @js($driver->driver_address),
                                                         contact1_name: @js($driver->contact1_name),
@@ -748,6 +920,10 @@
                     id: '', 
                     name: '', 
                     license_number: '', 
+                    certificate_number: '',
+                    certificate_expiry_date: '',
+                    license_expiry_date: '',
+                    license_renewed_place: '',
                     mobile_number: '', 
                     driver_address: '',
                     contact1_name: '',
@@ -761,6 +937,12 @@
                 viewDriver: {
                     name: '',
                     license_number: '',
+                    certificate_number: '',
+                    certificate_file_path: '',
+                    certificate_expiry_date: '',
+                    license_file_path: '',
+                    license_expiry_date: '',
+                    license_renewed_place: '',
                     mobile_number: '',
                     driver_address: '',
                     contact1_name: '',

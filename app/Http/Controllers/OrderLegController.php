@@ -47,6 +47,10 @@ class OrderLegController extends Controller
                 ->with('fleet')
                 ->where('is_active', true)
                 ->whereNotIn('id', $busyDriverIds)
+                ->where(function ($query) {
+                    $query->whereNull('license_expiry_date')
+                          ->orWhere('license_expiry_date', '>=', now()->startOfDay());
+                })
                 ->orderBy('name')
                 ->get(),
             'canViewDistance' => auth()->user()?->can('viewDistance', $order) ?? false,
@@ -73,6 +77,11 @@ class OrderLegController extends Controller
 
         if (! $driverId) {
             return back()->withErrors(['driver_id' => 'Invalid driver identifier.'])->withInput();
+        }
+
+        $driver = Driver::query()->find($driverId);
+        if ($driver && $driver->isLicenseExpired()) {
+            return back()->withErrors(['driver_id' => 'Cannot assign driver. License expired on ' . $driver->license_expiry_date->format('M d, Y') . '. Please update their credentials.'])->withInput();
         }
 
         try {

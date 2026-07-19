@@ -84,7 +84,6 @@ class OrderController extends Controller
             'cargo_type' => ['required', 'string', 'max:255'],
             'cargo_description' => ['nullable', 'string'],
             'weight_tons' => ['required', 'numeric', 'min:0'],
-            'agreed_price' => ['required', 'numeric', 'min:0'],
             'origin_address' => ['required', 'string', 'in:'.implode(',', TanzaniaRegions::names())],
             'destination_address' => ['required', 'string', 'different:origin_address', 'in:'.implode(',', TanzaniaRegions::names())],
             'expected_loading_date' => ['nullable', 'date'],

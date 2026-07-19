@@ -61,7 +61,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware('permission:fleet.view|fleet.create')->group(function () {
         Route::get('/fleet', [FleetController::class, 'index'])->name('fleet.index');
+        Route::get('/fleet/maintenance', [FleetController::class, 'maintenance'])->name('fleet.maintenance');
+        Route::get('/fleet/assignments', [FleetController::class, 'assignments'])->name('fleet.assignments');
+        Route::get('/fleet/alerts', [FleetController::class, 'alerts'])->name('fleet.alerts');
+        Route::get('/fleet/{fleetId}', [FleetController::class, 'show'])->name('fleet.show');
         Route::get('/fleet/{fleetId}/edit', [FleetController::class, 'edit'])->name('fleet.edit');
+        Route::post('/fleet/{fleetId}/maintenance', [FleetController::class, 'logMaintenance'])->name('fleet.maintenance.log');
+        Route::post('/fleet/{fleetId}/defer', [FleetController::class, 'deferMaintenance'])->name('fleet.defer');
+        Route::get('/fleet/alerts/json-check', [FleetController::class, 'alertsCheck'])->name('fleet.alerts.check');
     });
     Route::post('/fleet', [FleetController::class, 'store'])->middleware('permission:fleet.create')->name('fleet.store');
     Route::put('/fleet/{fleetId}', [FleetController::class, 'update'])->middleware('permission:fleet.create')->name('fleet.update');
@@ -98,6 +105,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:fuel.view|fuel.approve.supervisor|fuel.approve.accounting')
         ->name('fuel.show');
     Route::post('/fuel', [FuelRequisitionController::class, 'store'])->middleware('permission:fuel.create')->name('fuel.store');
+    Route::put('/fuel/{requisitionId}', [FuelRequisitionController::class, 'update'])->middleware('permission:fuel.create')->name('fuel.update');
     Route::post('/fuel/distance/estimate', [FuelRequisitionController::class, 'estimateDistance'])->middleware('permission:fuel.create')->name('fuel.distance.estimate');
     Route::post('/fuel/balance', [FuelRequisitionController::class, 'storeBalance'])->middleware('permission:fuel.create')->name('fuel.balance.store');
     Route::post('/fuel/{requisitionId}/supervisor-decision', [FuelRequisitionController::class, 'supervisorDecision'])->middleware('permission:fuel.approve.supervisor')->name('fuel.supervisor.decision');

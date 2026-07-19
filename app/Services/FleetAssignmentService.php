@@ -13,8 +13,10 @@ use RuntimeException;
 
 class FleetAssignmentService
 {
-    public function __construct(private readonly NotificationRoutingService $notificationRoutingService)
-    {
+    public function __construct(
+        private readonly NotificationRoutingService $notificationRoutingService,
+        private readonly FleetService $fleetService
+    ) {
     }
 
     /**
@@ -101,6 +103,10 @@ class FleetAssignmentService
 
             // Driver-to-fleet mapping is controlled at leg assignment time.
             $driver->update(['fleet_id' => $fleet->id]);
+            
+            // Record historical assignment
+            $this->fleetService->assignDriver($fleet, $driver);
+
             $fleet->update(['status' => 'unavailable']);
             $order->update(['status' => 'assigned']);
 
@@ -141,6 +147,12 @@ class FleetAssignmentService
 
             if (! $hasActiveLeg) {
                 $leg->fleet()->update(['status' => 'available']);
+            }
+
+            // Update odometer if distance was recorded
+            if ($leg->distance_km > 0) {
+                $fleet = $leg->fleet;
+                $this->fleetService->updateOdometer($fleet, $fleet->current_odometer + $leg->distance_km);
             }
 
             if ($leg->driver_id) {

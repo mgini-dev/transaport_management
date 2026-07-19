@@ -31,6 +31,18 @@
                 </div>
 
                 <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Vehicle Type</label>
+                    <select name="vehicle_type" 
+                            class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
+                        <option value="">Select Type</option>
+                        <option value="Truck" {{ old('vehicle_type', $fleet->vehicle_type) === 'Truck' ? 'selected' : '' }}>Truck</option>
+                        <option value="Trailer" {{ old('vehicle_type', $fleet->vehicle_type) === 'Trailer' ? 'selected' : '' }}>Trailer</option>
+                        <option value="Van" {{ old('vehicle_type', $fleet->vehicle_type) === 'Van' ? 'selected' : '' }}>Van</option>
+                        <option value="Pickup" {{ old('vehicle_type', $fleet->vehicle_type) === 'Pickup' ? 'selected' : '' }}>Pickup</option>
+                    </select>
+                </div>
+
+                <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Plate Number</label>
                     <input type="text"
                            name="plate_number"
@@ -44,6 +56,24 @@
                     <input type="text"
                            name="trailer_number"
                            value="{{ old('trailer_number', $fleet->trailer_number) }}"
+                           class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Current Odometer (km)</label>
+                    <input type="number"
+                           step="0.01"
+                           name="current_odometer"
+                           value="{{ old('current_odometer', $fleet->current_odometer) }}"
+                           required
+                           class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Service Interval (km)</label>
+                    <input type="number"
+                           name="oil_change_interval_km"
+                           value="{{ old('oil_change_interval_km', $fleet->oil_change_interval_km) }}"
                            required
                            class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
                 </div>
@@ -58,7 +88,16 @@
                            class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
                 </div>
 
-                <div class="md:col-span-2">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Fuel Benchmark (L/100km)</label>
+                    <input type="number"
+                           step="0.01"
+                           name="fuel_consumption_benchmark"
+                           value="{{ old('fuel_consumption_benchmark', $fleet->fuel_consumption_benchmark) }}"
+                           class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
+                </div>
+
+                <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Status</label>
                     <select name="status"
                             class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all">
@@ -66,6 +105,13 @@
                         <option value="unavailable" {{ old('status', $fleet->status) === 'unavailable' ? 'selected' : '' }}>Unavailable</option>
                         <option value="maintenance" {{ old('status', $fleet->status) === 'maintenance' ? 'selected' : '' }}>Maintenance</option>
                     </select>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Additional Notes</label>
+                    <textarea name="notes" 
+                              rows="3"
+                              class="w-full rounded-xl border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-[var(--nmis-primary)] focus:ring-2 focus:ring-[var(--nmis-primary)]/20 transition-all resize-none">{{ old('notes', $fleet->notes) }}</textarea>
                 </div>
 
                 <div class="md:col-span-2 flex justify-end gap-3 border-t border-slate-200/70 pt-4">

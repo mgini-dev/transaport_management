@@ -44,7 +44,6 @@ class OrderService
                     'cargo_type',
                     'cargo_description',
                     'weight_tons',
-                    'agreed_price',
                     'origin_address',
                     'destination_address',
                     'expected_loading_date',

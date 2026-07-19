@@ -74,10 +74,7 @@
                 <p class="text-sm font-semibold text-slate-500">Weight</p>
                 <p class="mt-2 text-lg font-semibold text-slate-900">{{ number_format((float) $order->weight_tons, 2) }} t</p>
             </div>
-            <div class="rounded-xl border border-slate-200/60 bg-white p-5 shadow-sm">
-                <p class="text-sm font-semibold text-slate-500">Agreed Price</p>
-                <p class="mt-2 text-lg font-semibold text-slate-900">{{ number_format((float) $order->agreed_price, 2) }}</p>
-            </div>
+
         </div>
 
         <div id="transport-actions" class="rounded-xl border border-slate-200/60 bg-white p-6 shadow-sm">

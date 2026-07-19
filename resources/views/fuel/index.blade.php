@@ -488,9 +488,9 @@
                         $labelColor = match ($tab['key']) {
                             'submitted' => 'text-[var(--nmis-primary)]',
                             'supervisor_approved' => 'text-[var(--nmis-secondary)]',
-                            'supervisor_rejected' => 'text-rose-700',
+                            'supervisor_rejected' => 'text-amber-700',
                             'accountant_approved' => 'text-[var(--nmis-accent)]',
-                            'accountant_rejected' => 'text-rose-700',
+                            'accountant_rejected' => 'text-amber-700',
                             default => 'text-slate-700',
                         };
                     @endphp
@@ -611,26 +611,27 @@
                                 </td>
                                 <td class="whitespace-nowrap px-6 py-4">
                                     @php
+                                        $isReturned = ($item->status === 'submitted' && $item->accountant_id) || $item->status === 'accountant_rejected';
                                         $statusColors = [
-                                            'submitted' => 'bg-[var(--nmis-primary)]/10 text-[var(--nmis-primary)]',
+                                            'submitted' => $isReturned ? 'bg-amber-100 text-amber-800' : 'bg-[var(--nmis-primary)]/10 text-[var(--nmis-primary)]',
                                             'supervisor_approved' => 'bg-[var(--nmis-secondary)]/10 text-[var(--nmis-secondary)]',
-                                            'supervisor_rejected' => 'bg-rose-100 text-rose-700',
+                                            'supervisor_rejected' => 'bg-amber-100 text-amber-800',
                                             'accountant_approved' => 'bg-[var(--nmis-accent)]/10 text-[var(--nmis-accent)]',
-                                            'accountant_rejected' => 'bg-rose-100 text-rose-700',
+                                            'accountant_rejected' => 'bg-amber-100 text-amber-800',
                                         ];
                                         $statusIcons = [
-                                            'submitted' => 'M12 4v16m8-8H4',
+                                            'submitted' => $isReturned ? 'M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89' : 'M12 4v16m8-8H4',
                                             'supervisor_approved' => 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
-                                            'supervisor_rejected' => 'M6 18L18 6M6 6l12 12',
+                                            'supervisor_rejected' => 'M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89',
                                             'accountant_approved' => 'M5 13l4 4L19 7',
-                                            'accountant_rejected' => 'M6 18L18 6M6 6l12 12',
+                                            'accountant_rejected' => 'M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89',
                                         ];
                                     @endphp
                                     <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium {{ $statusColors[$item->status] ?? 'bg-slate-100 text-slate-600' }}">
                                         <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $statusIcons[$item->status] ?? 'M12 4v16m8-8H4' }}"></path>
                                         </svg>
-                                        {{ str_replace('_', ' ', ucfirst($item->status)) }}
+                                        {{ $isReturned ? 'Returned to Manager' : ($item->status === 'supervisor_rejected' ? 'Returned to Requester' : str_replace('_', ' ', ucfirst($item->status))) }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4">

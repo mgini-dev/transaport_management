@@ -105,9 +105,9 @@ class FuelRequisitionController extends Controller
                 ['key' => 'all', 'label' => 'All', 'count' => $totalRequisitions],
                 ['key' => 'submitted', 'label' => 'Submitted', 'count' => (int) ($statusCounts['submitted'] ?? 0)],
                 ['key' => 'supervisor_approved', 'label' => 'Supervisor Approved', 'count' => (int) ($statusCounts['supervisor_approved'] ?? 0)],
-                ['key' => 'supervisor_rejected', 'label' => 'Supervisor Rejected', 'count' => (int) ($statusCounts['supervisor_rejected'] ?? 0)],
+                ['key' => 'supervisor_rejected', 'label' => 'Returned to Requester', 'count' => (int) ($statusCounts['supervisor_rejected'] ?? 0)],
                 ['key' => 'accountant_approved', 'label' => 'Accountant Approved', 'count' => (int) ($statusCounts['accountant_approved'] ?? 0)],
-                ['key' => 'accountant_rejected', 'label' => 'Accountant Rejected', 'count' => (int) ($statusCounts['accountant_rejected'] ?? 0)],
+                ['key' => 'accountant_rejected', 'label' => 'Returned to Manager', 'count' => (int) ($statusCounts['accountant_rejected'] ?? 0)],
             ],
             'statusCounts' => $statusCounts,
             'totalRequisitions' => $totalRequisitions,
@@ -274,7 +274,11 @@ class FuelRequisitionController extends Controller
             userAgent: $request->userAgent()
         );
 
-        return back()->with('status', "Supervisor decision saved for requisition #{$requisition->id}.");
+        $message = (bool) $data['approved'] 
+            ? "Supervisor approved requisition #{$requisition->id}." 
+            : "Requisition #{$requisition->id} has been returned to the requester.";
+
+        return back()->with('status', $message);
     }
 
     public function accountantDecision(Request $request, string $requisitionId): RedirectResponse
@@ -297,6 +301,52 @@ class FuelRequisitionController extends Controller
             userAgent: $request->userAgent()
         );
 
-        return back()->with('status', "Accountant decision saved for requisition #{$requisition->id}.");
+        $message = (bool) $data['approved'] 
+            ? "Accountant approved requisition #{$requisition->id}." 
+            : "Requisition #{$requisition->id} has been returned to the manager/supervisor.";
+
+        return back()->with('status', $message);
+    }
+
+    public function update(Request $request, string $requisitionId): RedirectResponse
+    {
+        $decodedId = EncryptedId::decode($requisitionId);
+        $requisition = FuelRequisition::query()->findOrFail($decodedId);
+
+        $isRequester = auth()->id() === $requisition->requested_by && $requisition->status === 'supervisor_rejected';
+        $isSupervisor = auth()->user()->can('fuel.approve.supervisor') && $requisition->status === 'submitted' && $requisition->accountant_id;
+
+        if (! $isRequester && ! $isSupervisor) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $rules = [
+            'fuel_station' => ['required', 'string', 'max:255'],
+            'additional_distance_km' => ['nullable', 'numeric', 'min:0'],
+            'fuel_price' => ['required', 'numeric', 'min:0'],
+            'discount' => ['nullable', 'numeric', 'min:0'],
+            'payment_channel' => ['required', 'string', 'max:100'],
+            'payment_account' => ['required', 'string', 'max:100'],
+        ];
+
+        if ($requisition->requisition_type === 'fleet_only') {
+            $rules['origin_address'] = ['required', 'string'];
+            $rules['destination_address'] = ['required', 'string'];
+        }
+
+        $data = $request->validate($rules);
+
+        $this->fuelRequisitionService->update($requisition, $data, $request->user(), $isRequester);
+
+        $this->auditLogService->record(
+            action: 'fuel.requisition.updated',
+            user: $request->user(),
+            loggable: $requisition,
+            context: ['status' => $requisition->status],
+            ipAddress: $request->ip(),
+            userAgent: $request->userAgent()
+        );
+
+        return back()->with('status', 'Fuel requisition updated and resubmitted successfully.');
     }
 }

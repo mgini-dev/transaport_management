@@ -168,6 +168,8 @@
             background-clip: text;
         }
 
+        [x-cloak] { display: none !important; }
+
         .notification-toast-enter {
             animation: slideInRight 0.25s ease-out;
         }
@@ -184,6 +186,31 @@
         }
     </style>
     <script>
+        // Fleet Alert Notifier
+        window.checkFleetAlerts = async function() {
+            try {
+                const response = await fetch('{{ route('fleet.alerts.check') }}');
+                if (!response.ok) return;
+                const data = await response.json();
+                
+                if (data.overdue > 0) {
+                    showNotificationToast({
+                        title: 'Fleet Alert: OVERDUE',
+                        message: `${data.overdue} vehicles are overdue for service. Please check the Maintenance Center.`
+                    });
+                } else if (data.approaching > 0) {
+                    showNotificationToast({
+                        title: 'Fleet Alert: Approaching',
+                        message: `${data.approaching} vehicles are near their service limit.`
+                    });
+                }
+            } catch (e) { console.error('Alert check failed', e); }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(window.checkFleetAlerts, 2000); // Check after 2 seconds
+        });
+
         window.NMIS = {
             userId: {{ (int) auth()->id() }},
             pusherKey: @js(env('PUSHER_APP_KEY')),
